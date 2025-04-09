@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Evaluación Docente</title>
+  <link rel="stylesheet" href="css/cuestionario.css">
+</head>
+<body>
+
+
+<div class="header">
+  <div class="title">
+    <h1>Universidad El Bosque</h1>
+    <h2>Evaluación docente</h2>
+  </div>
+  <img src="/img/logoUEB.png" alt="Logo Universidad El Bosque" class="logo">
+</div>
+
+  <div class="container">
+    <form id="formEvaluacion">
+
+      <label for="docente">Selecciona el docente</label>
+      <select id="docente" required>
+        <option value="">-- Selecciona --</option>
+        <option value="John Doe">John Doe</option>
+        <option value="Jane Smith">Jane Smith</option>
+      </select>
+
+      <label>¿Cómo calificarías la claridad y efectividad de las explicaciones del docente durante las clases?</label>
+     	<div class="radio-group">
+  		<label><input type="radio" name="p1" value="1" required> 1</label>
+  		<label><input type="radio" name="p1" value="2"> 2</label>
+  		<label><input type="radio" name="p1" value="3"> 3</label>
+  		<label><input type="radio" name="p1" value="4"> 4</label>
+  		<label><input type="radio" name="p1" value="5"> 5</label>
+	</div>
+
+      <label>¿En qué medida el docente fomenta un ambiente de aprendizaje inclusivo y participativo para todos los estudiantes?</label>
+     	<div class="radio-group">
+  		<label><input type="radio" name="p2" value="1" required> 1</label>
+  		<label><input type="radio" name="p2" value="2"> 2</label>
+  		<label><input type="radio" name="p2" value="3"> 3</label>
+  		<label><input type="radio" name="p2" value="4"> 4</label>
+  		<label><input type="radio" name="p2" value="5"> 5</label>
+	</div>
+
+      <label>¿Cómo evalúas la disposición del docente para colaborar y compartir buenas prácticas pedagógicas con sus compañeros?</label>
+     	<div class="radio-group">
+  		<label><input type="radio" name="p3" value="1" required> 1</label>
+  		<label><input type="radio" name="p3" value="2"> 2</label>
+  		<label><input type="radio" name="p3" value="3"> 3</label>
+  		<label><input type="radio" name="p3" value="4"> 4</label>
+  		<label><input type="radio" name="p3" value="5"> 5</label>
+	</div>
+
+      <label>¿Qué aspectos del desempeño del docente consideras que podrían mejorar y cómo sugerirías esas mejoras?</label>
+      <textarea placeholder="Cuéntanos..." rows="4" name="comentario"></textarea>
+
+      <div class="buttons">
+        <button type="button" onclick="window.location.href='index.html'">Anterior</button>
+        <button type="submit">Siguiente</button>
+      </div>
+    </form>
+  </div>
+
+</body>
+</html>
