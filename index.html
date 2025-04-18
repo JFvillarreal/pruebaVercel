@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Login - Evaluación Docente</title>
   <link rel="stylesheet" href="css/login.css">
-  <!-- Incluir la biblioteca de Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -35,47 +34,58 @@
 
     document.getElementById('loginForm').addEventListener('submit', async function(e) {
       e.preventDefault();
-
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
       const errorMsg = document.getElementById('errorMsg');
+      errorMsg.textContent = ""; // Limpiar mensajes anteriores
 
-      // Validación básica del correo
+      // Validación básica
       if (!email.includes('@')) {
         errorMsg.textContent = "Por favor ingrese un correo electrónico válido";
         return;
       }
 
       try {
-        // 1. Verificar las credenciales en la tabla User
-        const { data: userData, error: userError } = await supabase
+        // Opción 1: Si quieres usar solo tu tabla User (sin auth de Supabase)
+        const { data: user, error } = await supabase
           .from('User')
           .select('*')
           .eq('email', email)
           .eq('active', true)
           .single();
 
-        if (userError || !userData) {
+        if (error || !user) {
           errorMsg.textContent = "Usuario no encontrado o inactivo";
           return;
         }
 
-        // 2. Verificar la contraseña (usando el método de autenticación de Supabase)
-        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-          email: email,
-          password: password
-        });
-
-        if (authError) {
+        // Comparación básica de contraseña (NO RECOMENDADO PARA PRODUCCIÓN)
+        if (user.password !== password) { // En producción usa bcrypt o similar
           errorMsg.textContent = "Contraseña incorrecta";
           return;
         }
 
-        // 3. Si todo es correcto, redirigir al cuestionario
+        // Redirigir si es correcto
         window.location.href = "cuestionario.html";
 
+        /* 
+        // Opción 2: Si prefieres usar el sistema de autenticación de Supabase
+        // (requiere que los usuarios estén en auth.users también)
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: email,
+          password: password
+        });
+        
+        if (error) {
+          errorMsg.textContent = error.message;
+          return;
+        }
+        
+        window.location.href = "cuestionario.html";
+        */
+
       } catch (error) {
-        console.error('Error en el login:', error);
+        console.error('Error:', error);
         errorMsg.textContent = "Error en el servidor. Por favor intente más tarde.";
       }
     });
