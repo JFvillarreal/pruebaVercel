@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Login - Evaluación Docente</title>
   <link rel="stylesheet" href="css/login.css">
+  <!-- Incluir la biblioteca de Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
   <div class="container">
@@ -13,8 +15,8 @@
       <div class="subtitle">Evaluación docente</div>
       <div class="login-container">
         <form id="loginForm">
-          <input type="text" id="usuario" placeholder="Usuario" required />
-          <input type="password" id="contrasena" placeholder="Contraseña" required />
+          <input type="email" id="email" placeholder="Correo electrónico" required />
+          <input type="password" id="password" placeholder="Contraseña" required />
           <button type="submit">Ingresar</button>
           <div class="error" id="errorMsg"></div>
         </form>
@@ -26,20 +28,57 @@
   </div>
 
   <script>
-    document.getElementById('loginForm').addEventListener('submit', function(e) {
+    // Configuración de Supabase
+    const supabaseUrl = 'https://crwjvwwaksvdnryjmzvl.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyd2p2d3dha3N2ZG5yeWptenZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDY3ODksImV4cCI6MjA2MDMyMjc4OX0.s08kYWtmpc9c2b9VGwcKuiEna48KGoK2vz4y8rafyrE';
+    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
       e.preventDefault();
 
-      const usuario = document.getElementById('usuario').value;
-      const contrasena = document.getElementById('contrasena').value;
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
       const errorMsg = document.getElementById('errorMsg');
 
-      if (usuario === "admin" && contrasena === "1234") {
+      // Validación básica del correo
+      if (!email.includes('@')) {
+        errorMsg.textContent = "Por favor ingrese un correo electrónico válido";
+        return;
+      }
+
+      try {
+        // 1. Verificar las credenciales en la tabla User
+        const { data: userData, error: userError } = await supabase
+          .from('User')
+          .select('*')
+          .eq('email', email)
+          .eq('active', true)
+          .single();
+
+        if (userError || !userData) {
+          errorMsg.textContent = "Usuario no encontrado o inactivo";
+          return;
+        }
+
+        // 2. Verificar la contraseña (usando el método de autenticación de Supabase)
+        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+          email: email,
+          password: password
+        });
+
+        if (authError) {
+          errorMsg.textContent = "Contraseña incorrecta";
+          return;
+        }
+
+        // 3. Si todo es correcto, redirigir al cuestionario
         window.location.href = "cuestionario.html";
-      } else {
-        errorMsg.textContent = "Usuario o contraseña incorrectos";
+
+      } catch (error) {
+        console.error('Error en el login:', error);
+        errorMsg.textContent = "Error en el servidor. Por favor intente más tarde.";
       }
     });
   </script>
 </body>
 </html>
-
