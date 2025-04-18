@@ -25,61 +25,58 @@
     </div>
   </div>
 
-   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
       try {
-        // 1. Configuración de Supabase con headers explícitos
+        // 1. Configuración mejorada de Supabase
         const supabaseUrl = 'https://crwjvwwaksvdnryjmzvl.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyd2p2d3dha3N2ZG5yeWptenZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDY3ODksImV4cCI6MjA2MDMyMjc4OX0.s08kYWtmpc9c2b9VGwcKuiEna48KGoK2vz4y8rafyrE';
         
-        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey, {
+        const supabase = supabase.createClient(supabaseUrl, supabaseKey, {
           db: {
-            schema: 'public'
-          },
-          global: {
-            headers: {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json'
-            }
+            schema: 'public',
+            head: true // Importante para manejar respuestas vacías
           }
         });
 
-        // 2. Configuración del formulario
+        // 2. Configuración del formulario con manejo mejorado de errores
         const loginForm = document.getElementById('loginForm');
-        if (!loginForm) throw new Error('Formulario no encontrado');
-
         loginForm.addEventListener('submit', async (e) => {
           e.preventDefault();
           const errorMsg = document.getElementById('errorMsg');
           errorMsg.textContent = '';
-
-          const email = document.getElementById('email').value;
+          
+          const email = document.getElementById('email').value.trim();
           const password = document.getElementById('password').value;
 
+          if (!email || !password) {
+            errorMsg.textContent = "Por favor complete todos los campos";
+            return;
+          }
+
           try {
-            // 3. Consulta con headers explícitos
-            const { data: user, error } = await supabaseClient
+            // 3. Consulta mejorada con manejo explícito de respuestas
+            const { data: users, error } = await supabase
               .from('User')
               .select('*')
               .eq('email', email)
               .eq('active', true)
-              .single();
+              .limit(1); // Limitar explícitamente a 1 resultado
 
-            if (error) {
-              console.error('Error de Supabase:', error);
-              errorMsg.textContent = "Error en la autenticación";
+            if (error) throw error;
+
+            // Verificar si obtuvimos algún usuario
+            if (!users || users.length === 0) {
+              errorMsg.textContent = "Usuario no encontrado o inactivo";
               return;
             }
 
-            if (!user) {
-              errorMsg.textContent = "Usuario no encontrado";
-              return;
-            }
+            const user = users[0]; // Tomamos el primer usuario
 
             // 4. Comparación de contraseña (mejorar para producción)
             if (user.password !== password) {
-              errorMsg.textContent = "Contraseña incorrecta";
+              errorMsg.textContent = "Credenciales incorrectas";
               return;
             }
 
@@ -87,15 +84,14 @@
             window.location.href = "cuestionario.html";
 
           } catch (err) {
-            console.error('Error en el login:', err);
-            errorMsg.textContent = "Error en el servidor. Intente nuevamente.";
+            console.error('Error en login:', err);
+            errorMsg.textContent = err.message || "Error en la autenticación";
           }
         });
 
       } catch (initError) {
         console.error('Error de inicialización:', initError);
-        const errorMsg = document.getElementById('errorMsg');
-        if (errorMsg) errorMsg.textContent = "Error al cargar la aplicación";
+        alert("Error al cargar la aplicación. Por favor recarga la página.");
       }
     });
   </script>
