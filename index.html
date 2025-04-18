@@ -5,8 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Login - Evaluación Docente</title>
   <link rel="stylesheet" href="css/login.css">
-  <!-- Incluir la biblioteca de Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
   <div class="container">
@@ -27,35 +25,35 @@
     </div>
   </div>
 
+  <!-- Cambio crucial: Cargar Supabase al final del body -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    // Primero definimos las variables sin asignación
-    let supabase;
-    
-    // Esperamos a que el DOM esté completamente cargado
-    document.addEventListener('DOMContentLoaded', () => {
-      // Configuración de Supabase
+    // Esperar a que todo el contenido esté cargado
+    window.addEventListener('load', function() {
+      // Verificar que supabase está disponible
+      if (typeof supabase === 'undefined') {
+        console.error('Supabase no se cargó correctamente');
+        document.getElementById('errorMsg').textContent = 'Error al cargar la aplicación';
+        return;
+      }
+      
+      // Configurar Supabase
       const supabaseUrl = 'https://crwjvwwaksvdnryjmzvl.supabase.co';
       const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyd2p2d3dha3N2ZG5yeWptenZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDY3ODksImV4cCI6MjA2MDMyMjc4OX0.s08kYWtmpc9c2b9VGwcKuiEna48KGoK2vz4y8rafyrE';
-      supabase = supabase.createClient(supabaseUrl, supabaseKey);
+      const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-      // Configuramos el event listener después de inicializar Supabase
+      // Configurar el formulario
       document.getElementById('loginForm').addEventListener('submit', async function(e) {
         e.preventDefault();
-
+        
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
         const errorMsg = document.getElementById('errorMsg');
-        errorMsg.textContent = ""; // Limpiar mensajes anteriores
-
-        // Validación básica del correo
-        if (!email.includes('@')) {
-          errorMsg.textContent = "Por favor ingrese un correo electrónico válido";
-          return;
-        }
+        errorMsg.textContent = '';
 
         try {
-          // Verificar las credenciales en la tabla User
-          const { data: user, error } = await supabase
+          // Verificar usuario en tu tabla User
+          const { data: user, error } = await supabaseClient
             .from('User')
             .select('*')
             .eq('email', email)
@@ -67,18 +65,18 @@
             return;
           }
 
-          // Comparación básica de contraseña (NO SEGURO PARA PRODUCCIÓN)
+          // Comparación básica de contraseña (mejorar para producción)
           if (user.password !== password) {
             errorMsg.textContent = "Contraseña incorrecta";
             return;
           }
 
-          // Redirigir si es correcto
+          // Redirección exitosa
           window.location.href = "cuestionario.html";
-
-        } catch (error) {
-          console.error('Error:', error);
-          errorMsg.textContent = "Error en el servidor. Por favor intente más tarde.";
+          
+        } catch (err) {
+          console.error('Error en login:', err);
+          errorMsg.textContent = "Error en el servidor. Intente nuevamente.";
         }
       });
     });
