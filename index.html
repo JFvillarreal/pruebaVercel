@@ -25,20 +25,12 @@
     </div>
   </div>
 
-  <!-- Cambio crucial: Importar Supabase con un nombre diferente -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    // Esperar a que todo esté completamente cargado
-    window.addEventListener('load', function() {
-      // Verificar que la librería está cargada
-      if (typeof supabase === 'undefined') {
-        console.error('La librería Supabase no se cargó correctamente');
-        document.getElementById('errorMsg').textContent = 'Error al cargar la aplicación';
-        return;
-      }
-
+    // Esperar a que todo esté cargado
+    window.addEventListener('load', async () => {
       try {
-        // 1. Configuración de Supabase con nombre diferente
+        // Configuración de Supabase
         const supabaseUrl = 'https://crwjvwwaksvdnryjmzvl.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyd2p2d3dha3N2ZG5yeWptenZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDY3ODksImV4cCI6MjA2MDMyMjc4OX0.s08kYWtmpc9c2b9VGwcKuiEna48KGoK2vz4y8rafyrE';
         
@@ -46,79 +38,65 @@
           db: {
             schema: 'public',
             head: true
-          },
-          global: {
-            headers: {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json'
-            }
           }
         });
 
-        // 2. Configuración del formulario
+        // Configurar el formulario
         const loginForm = document.getElementById('loginForm');
-        if (!loginForm) {
-          throw new Error('No se encontró el formulario de login');
-        }
-
-        loginForm.addEventListener('submit', async function(e) {
+        loginForm.addEventListener('submit', async (e) => {
           e.preventDefault();
           const errorMsg = document.getElementById('errorMsg');
-          if (!errorMsg) return;
-          
           errorMsg.textContent = '';
-          const email = document.getElementById('email')?.value.trim();
-          const password = document.getElementById('password')?.value;
+          
+          const email = document.getElementById('email').value.trim();
+          const password = document.getElementById('password').value;
 
-          // Validación básica
           if (!email || !password) {
             errorMsg.textContent = "Por favor complete todos los campos";
             return;
           }
 
           try {
-            // 3. Consulta a Supabase con manejo mejorado
+            // Consulta a la tabla User
             const { data: users, error } = await supabaseClient
               .from('User')
-              .select('id, email, password, active')
-              .eq('email', email)
-              .eq('active', true)
-              .limit(1);
+              .select('*')
+              .ilike('email', email) // Usar ilike para coincidencia case-insensitive
+              .eq('active', true);
 
-            if (error) {
-              console.error('Error de Supabase:', error);
-              throw error;
-            }
+            if (error) throw error;
 
             if (!users || users.length === 0) {
               errorMsg.textContent = "Usuario no encontrado o inactivo";
               return;
             }
 
-            const user = users[0];
+            // Buscar coincidencia exacta de email (por si ilike devuelve múltiples)
+            const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
             
-            // 4. Comparación de contraseña (mejorar para producción)
-            if (user.password !== password) {
-              errorMsg.textContent = "Credenciales incorrectas";
+            if (!user) {
+              errorMsg.textContent = "Usuario no encontrado";
               return;
             }
 
-            // 5. Redirección exitosa
+            // Comparación de contraseña (asegúrate que coincide exactamente)
+            if (user.password !== password) {
+              errorMsg.textContent = "Contraseña incorrecta";
+              return;
+            }
+
+            // Redirección exitosa
             window.location.href = "cuestionario.html";
 
           } catch (err) {
-            console.error('Error en el login:', err);
+            console.error('Error en login:', err);
             errorMsg.textContent = "Error en la autenticación. Intente nuevamente.";
           }
         });
 
       } catch (initError) {
         console.error('Error de inicialización:', initError);
-        const errorMsg = document.getElementById('errorMsg');
-        if (errorMsg) {
-          errorMsg.textContent = "Error al iniciar la aplicación";
-        }
-        alert("Error crítico. Por favor recargue la página.");
+        alert("Error al cargar la aplicación. Por favor recarga la página.");
       }
     });
   </script>
