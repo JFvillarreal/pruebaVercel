@@ -25,60 +25,78 @@
     </div>
   </div>
 
-  <!-- Cambio crucial: Cargar Supabase al final del body -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    // Esperar a que todo el contenido esté cargado
-    window.addEventListener('load', function() {
-      // Verificar que supabase está disponible
-      if (typeof supabase === 'undefined') {
-        console.error('Supabase no se cargó correctamente');
-        document.getElementById('errorMsg').textContent = 'Error al cargar la aplicación';
-        return;
-      }
-      
-      // Configurar Supabase
-      const supabaseUrl = 'https://crwjvwwaksvdnryjmzvl.supabase.co';
-      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyd2p2d3dha3N2ZG5yeWptenZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDY3ODksImV4cCI6MjA2MDMyMjc4OX0.s08kYWtmpc9c2b9VGwcKuiEna48KGoK2vz4y8rafyrE';
-      const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
-
-      // Configurar el formulario
-      document.getElementById('loginForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        // 1. Configuración de Supabase con headers explícitos
+        const supabaseUrl = 'https://crwjvwwaksvdnryjmzvl.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyd2p2d3dha3N2ZG5yeWptenZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDY3ODksImV4cCI6MjA2MDMyMjc4OX0.s08kYWtmpc9c2b9VGwcKuiEna48KGoK2vz4y8rafyrE';
         
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey, {
+          db: {
+            schema: 'public'
+          },
+          global: {
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            }
+          }
+        });
+
+        // 2. Configuración del formulario
+        const loginForm = document.getElementById('loginForm');
+        if (!loginForm) throw new Error('Formulario no encontrado');
+
+        loginForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const errorMsg = document.getElementById('errorMsg');
+          errorMsg.textContent = '';
+
+          const email = document.getElementById('email').value;
+          const password = document.getElementById('password').value;
+
+          try {
+            // 3. Consulta con headers explícitos
+            const { data: user, error } = await supabaseClient
+              .from('User')
+              .select('*')
+              .eq('email', email)
+              .eq('active', true)
+              .single();
+
+            if (error) {
+              console.error('Error de Supabase:', error);
+              errorMsg.textContent = "Error en la autenticación";
+              return;
+            }
+
+            if (!user) {
+              errorMsg.textContent = "Usuario no encontrado";
+              return;
+            }
+
+            // 4. Comparación de contraseña (mejorar para producción)
+            if (user.password !== password) {
+              errorMsg.textContent = "Contraseña incorrecta";
+              return;
+            }
+
+            // 5. Redirección exitosa
+            window.location.href = "cuestionario.html";
+
+          } catch (err) {
+            console.error('Error en el login:', err);
+            errorMsg.textContent = "Error en el servidor. Intente nuevamente.";
+          }
+        });
+
+      } catch (initError) {
+        console.error('Error de inicialización:', initError);
         const errorMsg = document.getElementById('errorMsg');
-        errorMsg.textContent = '';
-
-        try {
-          // Verificar usuario en tu tabla User
-          const { data: user, error } = await supabaseClient
-            .from('User')
-            .select('*')
-            .eq('email', email)
-            .eq('active', true)
-            .single();
-
-          if (error || !user) {
-            errorMsg.textContent = "Usuario no encontrado o inactivo";
-            return;
-          }
-
-          // Comparación básica de contraseña (mejorar para producción)
-          if (user.password !== password) {
-            errorMsg.textContent = "Contraseña incorrecta";
-            return;
-          }
-
-          // Redirección exitosa
-          window.location.href = "cuestionario.html";
-          
-        } catch (err) {
-          console.error('Error en login:', err);
-          errorMsg.textContent = "Error en el servidor. Intente nuevamente.";
-        }
-      });
+        if (errorMsg) errorMsg.textContent = "Error al cargar la aplicación";
+      }
     });
   </script>
 </body>
