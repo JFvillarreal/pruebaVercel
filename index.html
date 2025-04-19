@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <title>Login - Evaluación Docente</title>
   <link rel="stylesheet" href="css/login.css">
-  <!-- Cargar Supabase primero -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Cargar Supabase con atributo defer -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 </head>
 <body>
   <div class="container">
@@ -27,77 +27,82 @@
   </div>
 
 
-  <script>
-    // Esperar a que la biblioteca de Supabase esté disponible
-    function initSupabase() {
-      return new Promise((resolve) => {
-        const checkSupabase = () => {
-          if (window.supabase) {
-            const supabase = window.supabase.createClient(
-              'https://crwjvwwaksvdnryjmzvl.supabase.co',
-              'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyd2p2d3dha3N2ZG5yeWptenZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDY3ODksImV4cCI6MjA2MDMyMjc4OX0.s08kYWtmpc9c2b9VGwcKuiEna48KGoK2vz4y8rafyrE',
-              {
-                auth: {
-                  persistSession: true,
-                  storage: window.localStorage,
-                  autoRefreshToken: true
-                }
-              }
-            );
-            resolve(supabase);
-          } else {
-            setTimeout(checkSupabase, 100);
-          }
-        };
-        checkSupabase();
-      });
-    }
-
-    document.addEventListener('DOMContentLoaded', async () => {
+  <script defer>
+    // 1. Esperar a que TODO esté cargado
+    window.addEventListener('load', async () => {
       try {
-        // 1. Inicializar Supabase (espera explícitamente)
-        const supabase = await initSupabase();
-        console.log("Supabase inicializado correctamente");
+        // 2. Verificar que Supabase está disponible
+        if (typeof supabase === 'undefined') {
+          throw new Error('La biblioteca Supabase no se cargó correctamente');
+        }
+        
+        // 3. Inicializar el cliente con nombre diferente
+        const supabaseClient = supabase.createClient(
+          'https://crwjvwwaksvdnryjmzvl.supabase.co',
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyd2p2d3dha3N2ZG5yeWptenZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDY3ODksImV4cCI6MjA2MDMyMjc4OX0.s08kYWtmpc9c2b9VGwcKuiEna48KGoK2vz4y8rafyrE',
+          {
+            auth: {
+              persistSession: true,
+              storage: window.localStorage,
+              autoRefreshToken: true
+            }
+          }
+        );
+        
+        console.log('Cliente Supabase inicializado:', supabaseClient);
 
-        // 2. Verificar sesión existente
-        const { data: { session } } = await supabase.auth.getSession();
+        // 4. Verificar sesión existente
+        const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+        
+        if (sessionError) throw sessionError;
         if (session) {
           window.location.href = 'cuestionario.html';
           return;
         }
 
-        // 3. Configurar el formulario de login
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        // 5. Configurar formulario de login
+        const loginForm = document.getElementById('loginForm');
+        if (!loginForm) throw new Error('Formulario no encontrado');
+        
+        loginForm.addEventListener('submit', async (e) => {
           e.preventDefault();
           
           const email = document.getElementById('email').value;
           const password = document.getElementById('password').value;
           const errorMsg = document.getElementById('errorMsg');
+          
+          if (!errorMsg) throw new Error('Elemento de error no encontrado');
           errorMsg.textContent = '';
 
-          const { data, error } = await supabase.auth.signInWithPassword({
-            email: email,
-            password: password
-          });
+          try {
+            const { data, error } = await supabaseClient.auth.signInWithPassword({
+              email: email,
+              password: password
+            });
 
-          if (error) {
-            errorMsg.textContent = error.message;
-            return;
+            if (error) throw error;
+
+            // Guardar manualmente la sesión
+            localStorage.setItem('sb-auth-data', JSON.stringify({
+              access_token: data.session.access_token,
+              refresh_token: data.session.refresh_token,
+              expires_at: data.session.expires_at
+            }));
+
+            // Redirigir con retraso para asegurar persistencia
+            setTimeout(() => {
+              window.location.href = 'cuestionario.html';
+            }, 300);
+            
+          } catch (error) {
+            console.error('Error en login:', error);
+            errorMsg.textContent = error.message || 'Error en la autenticación';
           }
-
-          // Guardar manualmente el token para asegurar persistencia
-          localStorage.setItem('sb-auth-token', JSON.stringify({
-            currentSession: data.session,
-            expiresAt: data.session.expires_at
-          }));
-
-          // Redirigir después de autenticar
-          window.location.href = 'cuestionario.html';
         });
 
       } catch (error) {
-        console.error('Error inicial:', error);
-        alert('Error al cargar la aplicación. Recarga la página.');
+        console.error('Error crítico:', error);
+        alert('Error inicializando la aplicación. Recarga la página.');
       }
     });
   </script>
