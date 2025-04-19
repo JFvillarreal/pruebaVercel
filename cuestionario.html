@@ -67,8 +67,8 @@
 
       async function verifySession() {
         try {
-          const accessToken = localStorage.getItem('sb-auth-token');
-          if (!accessToken) throw new Error('No hay token');
+      //    const accessToken = localStorage.getItem('sb-auth-token');
+       //  if (!accessToken) throw new Error('No hay token');
 
           const { data: { session }, error } = await supabaseClient.auth.getSession();
           if (error || !session) throw error || new Error('Sesión inválida');
