@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <title>Evaluación Docente</title>
   <link rel="stylesheet" href="css/cuestionario.css">
-  <!-- Cargar Supabase primero -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Cargar Supabase con defer para asegurar orden -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 </head>
 <body>
   <div class="header">
@@ -72,83 +72,66 @@
   </form>
 
   <script>
-    // Configuración de Supabase con inicialización segura
-    let supabaseClient;
-    
-    // Esperar a que la biblioteca de Supabase esté disponible
-    function initSupabase() {
-      return new Promise((resolve) => {
-        const checkSupabase = () => {
-          if (window.supabase) {
-            supabaseClient = window.supabase.createClient(
-              'https://crwjvwwaksvdnryjmzvl.supabase.co',
-              'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyd2p2d3dha3N2ZG5yeWptenZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDY3ODksImV4cCI6MjA2MDMyMjc4OX0.s08kYWtmpc9c2b9VGwcKuiEna48KGoK2vz4y8rafyrE',
-              {
-                auth: {
-                  persistSession: true,
-                  autoRefreshToken: true
-                }
-              }
-            );
-            resolve();
-          } else {
-            setTimeout(checkSupabase, 100);
-          }
-        };
-        checkSupabase();
+    // 1. Configuración de Supabase (versión segura)
+    const initSupabase = () => {
+      const supabaseUrl = 'https://crwjvwwaksvdnryjmzvl.supabase.co';
+      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyd2p2d3dha3N2ZG5yeWptenZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDY3ODksImV4cCI6MjA2MDMyMjc4OX0.s08kYWtmpc9c2b9VGwcKuiEna48KGoK2vz4y8rafyrE';
+      
+      return supabase.createClient(supabaseUrl, supabaseKey, {
+        auth: {
+          persistSession: true,
+          storage: localStorage
+        }
       });
-    }
+    };
 
-    document.addEventListener('DOMContentLoaded', async () => {
+    // 2. Función principal (con verificación robusta de sesión)
+    const main = async () => {
       try {
-        // 1. Inicializar Supabase (espera explícitamente)
-        await initSupabase();
-
-        // 2. Verificar sesión
-        const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-        if (authError || !user) {
+        // Inicializar Supabase
+        const supabase = initSupabase();
+        
+        // Verificar sesión DE DOS FORMAS
+        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!session || !user) {
+          console.warn('Redirigiendo a login - No hay sesión activa');
           window.location.href = 'index.html';
           return;
         }
 
-        // 3. Cargar docentes (usuarios con rol 'docente')
-        await loadTeachers();
-
-        // 4. Configurar evento de envío
-        document.getElementById('form-cuestionario').addEventListener('submit', async (e) => {
-          e.preventDefault();
-          await handleFormSubmit(e);
-        });
+        console.log('Usuario autenticado:', user.email);
+        
+        // Cargar docentes
+        await loadTeachers(supabase, user.id);
+        
+        // Configurar formulario
+        setupForm(supabase, user.id);
 
       } catch (error) {
-        console.error('Error inicial:', error);
+        console.error('Error en carga inicial:', error);
         alert('Error al cargar la aplicación. Recarga la página.');
       }
-    });
+    };
 
-    // [El resto de tus funciones (loadTeachers, handleFormSubmit) permanecen igual]
-    // Solo cambia todas las instancias de 'supabase' a 'supabaseClient'
-    
-    async function loadTeachers() {
+    // 3. Cargar docentes (con verificación de rol)
+    const loadTeachers = async (supabase, currentUserId) => {
       const select = document.getElementById('docente');
       select.innerHTML = '<option value="">Cargando docentes...</option>';
       
       try {
-        const { data: teachers, error } = await supabaseClient
+        const { data: teachers, error } = await supabase
           .from('User')
           .select('id, firstName, lastName')
           .eq('role', 'docente')
           .eq('active', true)
+          .neq('id', currentUserId)  // Excluir al usuario actual
           .order('lastName', { ascending: true });
 
         if (error) throw error;
 
         select.innerHTML = '<option value="">-- Seleccione docente --</option>';
-        
-        if (teachers.length === 0) {
-          select.innerHTML = '<option value="">No hay docentes disponibles</option>';
-          return;
-        }
         
         teachers.forEach(teacher => {
           const option = document.createElement('option');
@@ -161,63 +144,66 @@
         console.error('Error cargando docentes:', error);
         select.innerHTML = '<option value="">Error al cargar docentes</option>';
       }
-    }
+    };
 
-    async function handleFormSubmit(event) {
-      const form = event.target;
-      const submitBtn = form.querySelector('#submit-btn');
-      const docenteId = form.docente.value;
-      const comentarios = form.comentarios.value;
+    // 4. Configurar envío del formulario
+    const setupForm = (supabase, userId) => {
+      const form = document.getElementById('form-cuestionario');
       
-      if (!docenteId) {
-        alert('Debe seleccionar un docente');
-        return;
-      }
-
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Enviando...';
-
-      try {
-        const now = new Date();
-        const year = now.getFullYear();
-        const semester = now.getMonth() < 6 ? '1' : '2';
-        const currentSemester = `${year}-${semester}`;
-
-        const respuestas = [];
-        for (let i = 1; i <= 3; i++) {
-          const respuesta = form.querySelector(`input[name="q${i}"]:checked`)?.value;
-          if (!respuesta) {
-            throw new Error(`Debe responder la pregunta ${i}`);
-          }
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        
+        try {
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Enviando...';
           
-          respuestas.push({
-            user_id: (await supabaseClient.auth.getUser()).data.user.id,
-            docente_id: docenteId,
-            question_id: i,
-            respuesta: parseInt(respuesta),
-            semestre: currentSemester,
-            comentarios: i === 3 ? comentarios : null
-          });
+          const docenteId = form.docente.value;
+          if (!docenteId) throw new Error('Seleccione un docente');
+
+          // Obtener semestre automático
+          const now = new Date();
+          const semester = `${now.getFullYear()}-${now.getMonth() < 6 ? '1' : '2'}`;
+          
+          // Recoger respuestas
+          const answers = [];
+          for (let i = 1; i <= 3; i++) {
+            const value = form.querySelector(`input[name="q${i}"]:checked`)?.value;
+            if (!value) throw new Error(`Responda la pregunta ${i}`);
+            
+            answers.push({
+              user_id: userId,
+              docente_id: docenteId,
+              question_id: i,
+              respuesta: parseInt(value),
+              semestre: semester,
+              comentarios: i === 3 ? form.comentarios.value : null
+            });
+          }
+
+          // Insertar en Supabase
+          const { error } = await supabase
+            .from('Answer')
+            .insert(answers);
+
+          if (error) throw error;
+
+          alert('¡Evaluación enviada con éxito!');
+          form.reset();
+          window.location.href = 'gracias.html';
+
+        } catch (error) {
+          console.error('Error enviando evaluación:', error);
+          alert(error.message || 'Error al enviar. Intente nuevamente.');
+        } finally {
+          submitBtn.disabled = false;
+          submitText.textContent = 'Enviar';
         }
+      });
+    };
 
-        const { error } = await supabaseClient
-          .from('Answer')
-          .insert(respuestas);
-
-        if (error) throw error;
-
-        alert('¡Evaluación enviada con éxito!');
-        form.reset();
-        window.location.href = 'gracias.html';
-
-      } catch (error) {
-        console.error('Error enviando evaluación:', error);
-        alert(error.message || 'Error al enviar la evaluación. Intente nuevamente.');
-      } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Enviar';
-      }
-    }
+    // 5. Iniciar cuando el DOM esté listo
+    document.addEventListener('DOMContentLoaded', main);
   </script>
 </body>
 </html>
