@@ -32,8 +32,8 @@
     async function cargarDocentes() {
       const { data, error } = await supabase
         .from('User')
-        .select('id, firstName, lastName')
-        .eq('role', 'docente')
+        .select('id, firstname, lastname')
+        .ilike('role', 'docente') // Insensible a mayúsculas
         .order('lastName', { ascending: true });
 
       if (error) {
