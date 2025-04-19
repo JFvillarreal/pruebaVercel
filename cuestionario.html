@@ -4,200 +4,106 @@
   <meta charset="UTF-8">
   <title>Evaluación Docente</title>
   <link rel="stylesheet" href="css/cuestionario.css">
+  <!-- Cargar Supabase primero -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-
-<div class="header">
-  <div class="title">
-    <h1>Universidad El Bosque</h1>
-    <h2>Evaluación docente</h2>
-  </div>
-  <img src="/img/logoUEB.png" alt="Logo Universidad El Bosque" class="logo">
-</div>
-
-<form id="form-cuestionario" class="container">
-  <h3>Cuestionario de Evaluación Docente</h3>
-  <div class="question">
-    <p>13. Seleccione el docente evaluado:</p>
-    <select name="docente" required>
-      <option value="">-- Seleccione --</option>
-      <option value="profesor1">Profesor 1</option>
-      <option value="profesor2">Profesor 2</option>
-      <option value="profesor3">Profesor 3</option>
-      <!-- Puedes agregar más opciones aquí -->
-    </select>
-  </div>
-  <div class="question">
-    <p>1. En esta asignatura la comunicación entre el profesor y los estudiantes ha sido satisfactoria.</p>
-    <div class="scale-options">
-      <label><input type="radio" name="q1" value="1">1</label>
-      <label><input type="radio" name="q1" value="2">2</label>
-      <label><input type="radio" name="q1" value="3">3</label>
-      <label><input type="radio" name="q1" value="4">4</label>
-      <label><input type="radio" name="q1" value="5">5</label>
+  <div class="header">
+    <div class="title">
+      <h1>Universidad El Bosque</h1>
+      <h2>Evaluación docente</h2>
     </div>
+    <img src="/img/logoUEB.png" alt="Logo Universidad El Bosque" class="logo">
   </div>
 
-  <div class="question">
-    <p>2. En esta asignatura se han propuesto actividades que requieren el uso del idioma inglés.</p>
-    <div class="scale-options">
-      <label><input type="radio" name="q2" value="1">1</label>
-      <label><input type="radio" name="q2" value="2">2</label>
-      <label><input type="radio" name="q2" value="3">3</label>
-      <label><input type="radio" name="q2" value="4">4</label>
-      <label><input type="radio" name="q2" value="5">5</label>
+  <form id="form-cuestionario" class="container">
+    <h3>Cuestionario de Evaluación Docente</h3>
+    
+    <!-- Selección de docente -->
+    <div class="question">
+      <p>1. Seleccione el docente evaluado:</p>
+      <select id="docente" name="docente" required>
+        <option value="">-- Cargando docentes --</option>
+      </select>
     </div>
-  </div>
-
-  <div class="question">
-    <p>3. En esta asignatura las evaluaciones han sido coherentes con lo estudiado en ella.</p>
-    <div class="scale-options">
-      <label><input type="radio" name="q3" value="1">1</label>
-      <label><input type="radio" name="q3" value="2">2</label>
-      <label><input type="radio" name="q3" value="3">3</label>
-      <label><input type="radio" name="q3" value="4">4</label>
-      <label><input type="radio" name="q3" value="5">5</label>
+    
+    <!-- Preguntas del cuestionario (ejemplo con 3 preguntas) -->
+    <div class="question">
+      <p>2. La comunicación con el docente fue efectiva:</p>
+      <div class="scale-options">
+        <label><input type="radio" name="q1" value="1" required>1</label>
+        <label><input type="radio" name="q1" value="2">2</label>
+        <label><input type="radio" name="q1" value="3">3</label>
+        <label><input type="radio" name="q1" value="4">4</label>
+        <label><input type="radio" name="q1" value="5">5</label>
+      </div>
     </div>
-  </div>
-
-  <div class="question">
-    <p>4. Las evaluaciones realizadas en esta asignatura están encaminadas a medir el logro de las competencias planteadas.</p>
-    <div class="scale-options">
-      <label><input type="radio" name="q4" value="1">1</label>
-      <label><input type="radio" name="q4" value="2">2</label>
-      <label><input type="radio" name="q4" value="3">3</label>
-      <label><input type="radio" name="q4" value="4">4</label>
-      <label><input type="radio" name="q4" value="5">5</label>
+    
+    <div class="question">
+      <p>3. El dominio del tema por parte del docente fue:</p>
+      <div class="scale-options">
+        <label><input type="radio" name="q2" value="1" required>1</label>
+        <label><input type="radio" name="q2" value="2">2</label>
+        <label><input type="radio" name="q2" value="3">3</label>
+        <label><input type="radio" name="q2" value="4">4</label>
+        <label><input type="radio" name="q2" value="5">5</label>
+      </div>
     </div>
-  </div>
-
-  <div class="question">
-    <p>5. En esta asignatura la realimentación de sus trabajos ha sido útil para mejorar su proceso de aprendizaje.</p>
-    <div class="scale-options">
-      <label><input type="radio" name="q5" value="1">1</label>
-      <label><input type="radio" name="q5" value="2">2</label>
-      <label><input type="radio" name="q5" value="3">3</label>
-      <label><input type="radio" name="q5" value="4">4</label>
-      <label><input type="radio" name="q5" value="5">5</label>
+    
+    <div class="question">
+      <p>4. La puntualidad del docente fue:</p>
+      <div class="scale-options">
+        <label><input type="radio" name="q3" value="1" required>1</label>
+        <label><input type="radio" name="q3" value="2">2</label>
+        <label><input type="radio" name="q3" value="3">3</label>
+        <label><input type="radio" name="q3" value="4">4</label>
+        <label><input type="radio" name="q3" value="5">5</label>
+      </div>
     </div>
-  </div>
-
-  <div class="question">
-    <p>6. En el aula virtual están todos los recursos necesarios para el desarrollo de las actividades de la asignatura.</p>
-    <div class="scale-options">
-      <label><input type="radio" name="q6" value="1">1</label>
-      <label><input type="radio" name="q6" value="2">2</label>
-      <label><input type="radio" name="q6" value="3">3</label>
-      <label><input type="radio" name="q6" value="4">4</label>
-      <label><input type="radio" name="q6" value="5">5</label>
+    
+    <div class="question">
+      <p>Comentarios adicionales:</p>
+      <textarea name="comentarios" rows="4" placeholder="Escriba sus observaciones aquí..."></textarea>
     </div>
-  </div>
-
-  <div class="question">
-    <p>7. El desarrollo de la asignatura ha sido acorde con el sílabo dado a conocer al inicio de la asignatura.</p>
-    <div class="scale-options">
-      <label><input type="radio" name="q7" value="1">1</label>
-      <label><input type="radio" name="q7" value="2">2</label>
-      <label><input type="radio" name="q7" value="3">3</label>
-      <label><input type="radio" name="q7" value="4">4</label>
-      <label><input type="radio" name="q7" value="5">5</label>
+    
+    <div class="navigation-buttons">
+      <button type="submit" id="submit-btn">Enviar</button>
     </div>
-  </div>
+  </form>
 
-  <div class="question">
-    <p>8. Las actividades desarrolladas en la asignatura lo incentivan a seguir aprendiendo sobre la materia y materias relacionadas.</p>
-    <div class="scale-options">
-      <label><input type="radio" name="q8" value="1">1</label>
-      <label><input type="radio" name="q8" value="2">2</label>
-      <label><input type="radio" name="q8" value="3">3</label>
-      <label><input type="radio" name="q8" value="4">4</label>
-      <label><input type="radio" name="q8" value="5">5</label>
-    </div>
-  </div>
-
-  <div class="question">
-    <p>9. El docente de esta asignatura ha estado dispuesto y ha realizado tutorías o asesorías cuando se han requerido.</p>
-    <div class="scale-options">
-      <label><input type="radio" name="q9" value="1">1</label>
-      <label><input type="radio" name="q9" value="2">2</label>
-      <label><input type="radio" name="q9" value="3">3</label>
-      <label><input type="radio" name="q9" value="4">4</label>
-      <label><input type="radio" name="q9" value="5">5</label>
-    </div>
-  </div>
-
-  <div class="question">
-    <p>10. El docente de esta asignatura ha sido puntual con las sesiones de clase planteadas en el cronograma.</p>
-    <div class="scale-options">
-      <label><input type="radio" name="q10" value="1">1</label>
-      <label><input type="radio" name="q10" value="2">2</label>
-      <label><input type="radio" name="q10" value="3">3</label>
-      <label><input type="radio" name="q10" value="4">4</label>
-      <label><input type="radio" name="q10" value="5">5</label>
-    </div>
-  </div>
-
-  <div class="question">
-    <p>11. Evalúe su percepción sobre la calidad docente del profesor con respecto a la dinámica de clase.</p>
-    <div class="scale-options">
-      <label><input type="radio" name="q11" value="1">1</label>
-      <label><input type="radio" name="q11" value="2">2</label>
-      <label><input type="radio" name="q11" value="3">3</label>
-      <label><input type="radio" name="q11" value="4">4</label>
-      <label><input type="radio" name="q11" value="5">5</label>
-    </div>
-  </div>
-
-  <div class="question">
-    <p>12. Evalúe su desempeño en la asignatura.</p>
-    <div class="scale-options">
-      <label><input type="radio" name="q12" value="1">1</label>
-      <label><input type="radio" name="q12" value="2">2</label>
-      <label><input type="radio" name="q12" value="3">3</label>
-      <label><input type="radio" name="q12" value="4">4</label>
-      <label><input type="radio" name="q12" value="5">5</label>
-    </div>
-  </div>
-
-  <div class="navigation-buttons">
-    <button type="submit">Enviar</button>
-  </div>
-  <div class="question">
-    <p>14. Comentarios adicionales (opcional):</p>
-    <textarea name="comentarios" rows="4" placeholder="Escriba sus observaciones aquí..."></textarea>
-  </div>
-</form>
   <script>
-    // Configuración Supabase
-    const supabaseUrl = 'https://crwjvwwaksvdnryjmzvl.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyd2p2d3dha3N2ZG5yeWptenZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDY3ODksImV4cCI6MjA2MDMyMjc4OX0.s08kYWtmpc9c2b9VGwcKuiEna48KGoK2vz4y8rafyrE';
-    const supabase = supabase.createClient(supabaseUrl, supabaseKey, {
-      auth: { persistSession: true }
-    });
-
-    // Variables globales
-    let userId = null;
-    let currentSemester = '';
-
+    // Configuración de Supabase con inicialización segura
+    let supabase;
+    
     document.addEventListener('DOMContentLoaded', async () => {
       try {
-        // Verificar sesión
+        // 1. Inicializar Supabase
+        supabase = supabase.createClient(
+          'https://crwjvwwaksvdnryjmzvl.supabase.co',
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyd2p2d3dha3N2ZG5yeWptenZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDY3ODksImV4cCI6MjA2MDMyMjc4OX0.s08kYWtmpc9c2b9VGwcKuiEna48KGoK2vz4y8rafyrE',
+          {
+            auth: {
+              persistSession: true,
+              autoRefreshToken: true
+            }
+          }
+        );
+
+        // 2. Verificar sesión
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError || !user) {
           window.location.href = 'index.html';
           return;
         }
-        userId = user.id;
-        
-        // Determinar semestre actual (2025-1 o 2025-2)
-        const now = new Date();
-        const year = now.getFullYear();
-        const semester = now.getMonth() < 6 ? '1' : '2'; // Enero-Junio=1, Julio-Dic=2
-        currentSemester = `${year}-${semester}`;
-        
-        // Cargar docentes
+
+        // 3. Cargar docentes (usuarios con rol 'docente')
         await loadTeachers();
+
+        // 4. Configurar evento de envío
+        document.getElementById('form-cuestionario').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          await handleFormSubmit(e);
+        });
 
       } catch (error) {
         console.error('Error inicial:', error);
@@ -205,26 +111,33 @@
       }
     });
 
-    // Cargar docentes desde la tabla de usuarios
+    // Función para cargar docentes
     async function loadTeachers() {
       const select = document.getElementById('docente');
       select.innerHTML = '<option value="">Cargando docentes...</option>';
       
       try {
+        // Consulta a la tabla de usuarios filtrando por rol 'docente'
         const { data: teachers, error } = await supabase
-          .from('users')  // Asegúrate que esta es tu tabla de usuarios
-          .select('id, nombre, apellido')
-          .eq('rol', 'docente')
-          .eq('activo', true)
-          .order('apellido', { ascending: true });
+          .from('User')  // Asegúrate que esta es tu tabla de usuarios
+          .select('id, firstName, lastName')
+          .eq('role', 'docente')  // Filtra por rol docente
+          .eq('active', true)     // Solo usuarios activos
+          .order('lastName', { ascending: true });
 
         if (error) throw error;
 
         select.innerHTML = '<option value="">-- Seleccione docente --</option>';
+        
+        if (teachers.length === 0) {
+          select.innerHTML = '<option value="">No hay docentes disponibles</option>';
+          return;
+        }
+        
         teachers.forEach(teacher => {
           const option = document.createElement('option');
           option.value = teacher.id;
-          option.textContent = `${teacher.apellido}, ${teacher.nombre}`;
+          option.textContent = `${teacher.lastName}, ${teacher.firstName}`;
           select.appendChild(option);
         });
 
@@ -234,14 +147,12 @@
       }
     }
 
-    // Manejar envío del formulario
-    document.getElementById('form-cuestionario').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      
-      const form = e.target;
+    // Función para manejar el envío del formulario
+    async function handleFormSubmit(event) {
+      const form = event.target;
+      const submitBtn = form.querySelector('#submit-btn');
       const docenteId = form.docente.value;
       const comentarios = form.comentarios.value;
-      const submitBtn = form.querySelector('button[type="submit"]');
       
       // Validación básica
       if (!docenteId) {
@@ -253,26 +164,34 @@
       submitBtn.textContent = 'Enviando...';
 
       try {
-        // Recoger todas las respuestas
-        const answers = [];
-        for (let i = 1; i <= 12; i++) {  // Para las 12 preguntas
+        // Obtener semestre actual (2025-1 o 2025-2)
+        const now = new Date();
+        const year = now.getFullYear();
+        const semester = now.getMonth() < 6 ? '1' : '2';
+        const currentSemester = `${year}-${semester}`;
+
+        // Recoger respuestas
+        const respuestas = [];
+        for (let i = 1; i <= 3; i++) {  // Ajusta según número de preguntas
           const respuesta = form.querySelector(`input[name="q${i}"]:checked`)?.value;
-          if (respuesta) {
-            answers.push({
-              user_id: userId,
-              docente_id: docenteId,
-              question_id: i,
-              respuesta: parseInt(respuesta),
-              semestre: currentSemester,
-              comentarios: i === 12 ? comentarios : null  // Guardar comentarios con la última pregunta
-            });
+          if (!respuesta) {
+            throw new Error(`Debe responder la pregunta ${i}`);
           }
+          
+          respuestas.push({
+            user_id: (await supabase.auth.getUser()).data.user.id,
+            docente_id: docenteId,
+            question_id: i,
+            respuesta: parseInt(respuesta),
+            semestre: currentSemester,
+            comentarios: i === 3 ? comentarios : null  // Guardar comentarios con la última pregunta
+          });
         }
 
-        // Insertar respuestas en Supabase
+        // Insertar respuestas
         const { error } = await supabase
           .from('Answer')
-          .insert(answers);
+          .insert(respuestas);
 
         if (error) throw error;
 
@@ -281,13 +200,13 @@
         window.location.href = 'gracias.html';
 
       } catch (error) {
-        console.error('Error enviando respuestas:', error);
-        alert('Error al enviar la evaluación. Intente nuevamente.');
+        console.error('Error enviando evaluación:', error);
+        alert(error.message || 'Error al enviar la evaluación. Intente nuevamente.');
       } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = 'Enviar';
       }
-    });
+    }
   </script>
 </body>
 </html>
