@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <title>Evaluación Docente</title>
   <link rel="stylesheet" href="css/cuestionario.css">
-  <!-- Cargar Supabase con defer para asegurar orden -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <!-- Cambiado: Cargar Supabase SIN defer -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
   <div class="header">
@@ -170,79 +170,88 @@
 </form>
 
   <script>
-    // 1. Inicialización temprana de Supabase
-    const supabaseUrl = 'https://crwjvwwaksvdnryjmzvl.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyd2p2d3dha3N2ZG5yeWptenZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDY3ODksImV4cCI6MjA2MDMyMjc4OX0.s08kYWtmpc9c2b9VGwcKuiEna48KGoK2vz4y8rafyrE';
-    
-    const supabase = supabase.createClient(supabaseUrl, supabaseKey, {
-      auth: {
-        persistSession: true,
-        storage: window.localStorage,
-        autoRefreshToken: true
-      }
-    });
-
-    // 2. Función para cargar docentes
-    async function loadTeachers() {
-      try {
-        const { data: teachers, error } = await supabase
-          .from('User')
-          .select('id, firstName, lastName')
-          .eq('role', 'docente')
-          .order('lastName', { ascending: true });
-
-        if (error) throw error;
-
-        const select = document.querySelector('select[name="docente"]');
-        select.innerHTML = '<option value="">-- Seleccione --</option>';
-
-        teachers.forEach(teacher => {
-          const option = document.createElement('option');
-          option.value = teacher.id;
-          option.textContent = `${teacher.firstName} ${teacher.lastName}`;
-          select.appendChild(option);
-        });
-
-      } catch (error) {
-        console.error('Error cargando docentes:', error);
-        alert('Error al cargar la lista de docentes');
-      }
-    }
-
-    // 3. Verificación de autenticación
-    async function checkAuth() {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (error || !user) {
-        window.location.href = 'index.html';
-        return false;
-      }
-      return true;
-    }
-
-    // 4. Manejo del envío del formulario
-    async function handleFormSubmit(e) {
-      e.preventDefault();
-      const submitBtn = e.target.querySelector('button[type="submit"]');
-      
-      try {
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Enviando...';
-        
-        if (!await checkAuth()) return;
-
-        // Resto del código de envío...
-        
-      } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Enviar';
-      }
-    }
-
-    // 5. Inicialización cuando el DOM esté listo
+    // 1. Esperar a que Supabase esté completamente cargado
     document.addEventListener('DOMContentLoaded', async () => {
-      if (!await checkAuth()) return;
-      await loadTeachers();
-      document.getElementById('form-cuestionario').addEventListener('submit', handleFormSubmit);
+      // Verificar que Supabase está disponible
+      if (typeof supabase === 'undefined') {
+        console.error('Supabase no se cargó correctamente');
+        return;
+      }
+
+      // 2. Inicialización de Supabase
+      const supabaseUrl = 'https://crwjvwwaksvdnryjmzvl.supabase.co';
+      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyd2p2d3dha3N2ZG5yeWptenZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDY3ODksImV4cCI6MjA2MDMyMjc4OX0.s08kYWtmpc9c2b9VGwcKuiEna48KGoK2vz4y8rafyrE';
+      
+      const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey, {
+        auth: {
+          persistSession: true,
+          storage: window.localStorage,
+          autoRefreshToken: true
+        }
+      });
+
+      // 3. Función para cargar docentes (actualizada)
+      async function loadTeachers() {
+        try {
+          const { data: teachers, error } = await supabaseClient
+            .from('User')
+            .select('id, firstName, lastName')
+            .eq('role', 'docente')
+            .order('lastName', { ascending: true });
+
+          if (error) throw error;
+
+          const select = document.querySelector('select[name="docente"]');
+          if (!select) return;
+
+          // Limpiar y agregar opciones
+          select.innerHTML = '<option value="">-- Seleccione --</option>';
+          
+          teachers.forEach(teacher => {
+            const option = document.createElement('option');
+            option.value = teacher.id;
+            option.textContent = `${teacher.firstName} ${teacher.lastName}`;
+            select.appendChild(option);
+          });
+
+        } catch (error) {
+          console.error('Error cargando docentes:', error);
+          alert('Error al cargar la lista de docentes');
+        }
+      }
+
+      // 4. Verificación de autenticación
+      async function checkAuth() {
+        try {
+          const { data: { user }, error } = await supabaseClient.auth.getUser();
+          if (error || !user) {
+            console.error('Usuario no autenticado:', error);
+            window.location.href = 'index.html';
+            return false;
+          }
+          return true;
+        } catch (error) {
+          console.error('Error en checkAuth:', error);
+          window.location.href = 'index.html';
+          return false;
+        }
+      }
+
+      // 5. Configuración inicial
+      try {
+        if (!await checkAuth()) return;
+        await loadTeachers();
+        
+        const form = document.getElementById('form-cuestionario');
+        if (form) {
+          form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            // Tu lógica de envío del formulario...
+          });
+        }
+      } catch (error) {
+        console.error('Error inicial:', error);
+      }
     });
   </script>
 </body>
