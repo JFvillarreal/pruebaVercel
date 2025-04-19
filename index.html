@@ -4,12 +4,11 @@
   <meta charset="UTF-8">
   <title>Login - Evaluación Docente</title>
   <link rel="stylesheet" href="css/login.css">
-  <!-- Cambiado: Eliminado defer para cargar inmediatamente -->
+  <!-- Cargar Supabase SIN defer para evitar problemas de timing -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
   <div class="container">
-    <!-- Tu contenido HTML existente -->
     <div class="left">
       <div class="title">Universidad El Bosque</div>
       <div class="subtitle">Evaluación docente</div>
@@ -27,73 +26,73 @@
     </div>
   </div>
 
-  <script>
-    // Esperar a que todo esté completamente cargado
-    document.addEventListener('DOMContentLoaded', () => {
-      // 1. Verificar que Supabase está disponible
-      if (typeof supabase === 'undefined') {
-        console.error('Error: Supabase no se cargó correctamente');
-        document.getElementById('errorMsg').textContent = 'Error inicializando la aplicación';
+<script>
+  document.addEventListener('DOMContentLoaded', async () => {
+    if (typeof supabase === 'undefined') {
+      console.error('Error: La biblioteca Supabase no se cargó correctamente');
+      document.getElementById('errorMsg').textContent = 'Error técnico. Por favor recarga la página.';
+      return;
+    }
+
+    const supabaseUrl = 'https://crwjvwwaksvdnryjmzvl.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyd2p2d3dha3N2ZG5yeWptenZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDY3ODksImV4cCI6MjA2MDMyMjc4OX0.s08kYWtmpc9c2b9VGwcKuiEna48KGoK2vz4y8rafyrE';
+    
+    const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+    const loginForm = document.getElementById('loginForm');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const errorMsg = document.getElementById('errorMsg');
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      errorMsg.textContent = '';
+      emailInput.classList.remove('input-error');
+      passwordInput.classList.remove('input-error');
+
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
+
+      if (!email || !password) {
+        errorMsg.textContent = 'Por favor ingresa tu correo y contraseña';
+        if (!email) emailInput.classList.add('input-error');
+        if (!password) passwordInput.classList.add('input-error');
         return;
       }
 
-      // 2. Inicializar Supabase
-      const supabaseUrl = 'https://crwjvwwaksvdnryjmzvl.supabase.co';
-      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyd2p2d3dha3N2ZG5yeWptenZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDY3ODksImV4cCI6MjA2MDMyMjc4OX0.s08kYWtmpc9c2b9VGwcKuiEna48KGoK2vz4y8rafyrE';
-      
-      const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey, {
-        auth: {
-          persistSession: true,
-          storage: window.localStorage,
-          autoRefreshToken: true,
-          detectSessionInUrl: false
+      const submitBtn = loginForm.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Verificando...';
+
+      try {
+        const { data, error } = await supabaseClient
+          .from('User')
+          .select('*')
+          .eq('email', email)
+          .eq('password', password)
+          .single();
+
+        if (error || !data) {
+          errorMsg.textContent = 'Correo o contraseña incorrectos';
+          emailInput.classList.add('input-error');
+          passwordInput.classList.add('input-error');
+          return;
         }
-      });
 
-      // 3. Verificar sesión existente
-      supabaseClient.auth.getSession().then(({ data: { session } }) => {
-        if (session) {
-          window.location.href = 'cuestionario.html';
-        }
-      }).catch(error => {
-        console.error('Error verificando sesión:', error);
-      });
+        // Login exitoso
+        localStorage.setItem('userId', data.id); // Cambia 'id' si tu columna tiene otro nombre
+        window.location.href = 'cuestionario.html';
 
-      // 4. Configurar formulario de login
-      const loginForm = document.getElementById('loginForm');
-      const errorMsg = document.getElementById('errorMsg');
-
-      loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        errorMsg.textContent = '';
-        
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-
-        try {
-          const { data, error } = await supabaseClient.auth.signInWithPassword({
-            email: email,
-            password: password
-          });
-
-          if (error) throw error;
-
-          // Guardar tokens manualmente como respaldo
-          localStorage.setItem('sb-auth-token', data.session.access_token);
-          localStorage.setItem('sb-refresh-token', data.session.refresh_token);
-
-          // Redirigir después de breve pausa
-          setTimeout(() => {
-            window.location.href = 'cuestionario.html';
-          }, 300);
-
-        } catch (error) {
-          console.error('Error en login:', error);
-          errorMsg.textContent = error.message.includes('Invalid') ? 
-            'Credenciales incorrectas' : 'Error en el inicio de sesión';
-        }
-      });
+      } catch (err) {
+        console.error('Error consultando tabla User:', err);
+        errorMsg.textContent = 'Error de conexión. Intenta más tarde.';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Ingresar';
+      }
     });
-  </script>
+  });
+</script>
 </body>
 </html>

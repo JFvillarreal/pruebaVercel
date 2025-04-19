@@ -7,7 +7,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-  <!-- Tu contenido HTML existente -->
   <div class="header">
     <div class="title">
       <h1>Universidad El Bosque</h1>
@@ -17,23 +16,46 @@
   </div>
 
   <form id="form-cuestionario" class="container">
-    <!-- Mantener tu estructura de preguntas existente -->
+    <label for="docente">Seleccione el docente:</label>
+    <select name="docente" required></select>
+
+    <div class="pregunta">
+      <label for="pregunta1">1. ¿El docente explica claramente los temas?</label>
+      <select name="pregunta1" required>
+        <option value="">-- Seleccione --</option>
+        <option value="1">Nunca</option>
+        <option value="2">Rara vez</option>
+        <option value="3">A veces</option>
+        <option value="4">Frecuentemente</option>
+        <option value="5">Siempre</option>
+      </select>
+    </div>
+
+    <div class="pregunta">
+      <label for="pregunta2">2. ¿El docente promueve la participación en clase?</label>
+      <select name="pregunta2" required>
+        <option value="">-- Seleccione --</option>
+        <option value="1">Nunca</option>
+        <option value="2">Rara vez</option>
+        <option value="3">A veces</option>
+        <option value="4">Frecuentemente</option>
+        <option value="5">Siempre</option>
+      </select>
+    </div>
+
+    <div class="pregunta">
+      <label for="observaciones">Observaciones adicionales (opcional):</label>
+      <textarea name="observaciones" rows="4" placeholder="Escribe tus comentarios..."></textarea>
+    </div>
+
+    <button type="submit">Enviar</button>
   </form>
 
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
-      // 1. Verificar que Supabase está disponible
-      if (typeof supabase === 'undefined') {
-        console.error('Error: Supabase no se cargó correctamente');
-        alert('Error inicializando la aplicación');
-        window.location.href = 'index.html';
-        return;
-      }
-
-      // 2. Inicializar Supabase (configuración IDÉNTICA a index.html)
       const supabaseUrl = 'https://crwjvwwaksvdnryjmzvl.supabase.co';
       const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyd2p2d3dha3N2ZG5yeWptenZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDY3ODksImV4cCI6MjA2MDMyMjc4OX0.s08kYWtmpc9c2b9VGwcKuiEna48KGoK2vz4y8rafyrE';
-      
+
       const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey, {
         auth: {
           persistSession: true,
@@ -43,30 +65,23 @@
         }
       });
 
-      // 3. Función de verificación de sesión mejorada
       async function verifySession() {
         try {
-          // Verificar tokens manuales primero
           const accessToken = localStorage.getItem('sb-auth-token');
-          if (!accessToken) throw new Error('No hay token de acceso');
-          
-          // Verificar sesión con Supabase
+          if (!accessToken) throw new Error('No hay token');
+
           const { data: { session }, error } = await supabaseClient.auth.getSession();
           if (error || !session) throw error || new Error('Sesión inválida');
-          
-          return true;
+          return session;
         } catch (error) {
-          console.error('Error de verificación:', error);
-          // Limpiar todo y redirigir
-          localStorage.removeItem('sb-auth-token');
-          localStorage.removeItem('sb-refresh-token');
+          console.error('Sesión inválida:', error);
           await supabaseClient.auth.signOut();
+          localStorage.clear();
           window.location.href = 'index.html';
-          return false;
+          return null;
         }
       }
 
-      // 4. Cargar lista de docentes
       async function loadTeachers() {
         try {
           const { data: teachers, error } = await supabaseClient
@@ -79,51 +94,69 @@
 
           const select = document.querySelector('select[name="docente"]');
           select.innerHTML = '<option value="">-- Seleccione --</option>';
-
-          teachers.forEach(teacher => {
+          teachers.forEach(t => {
             const option = document.createElement('option');
-            option.value = teacher.id;
-            option.textContent = `${teacher.firstName} ${teacher.lastName}`;
+            option.value = t.id;
+            option.textContent = `${t.firstName} ${t.lastName}`;
             select.appendChild(option);
           });
-
         } catch (error) {
           console.error('Error cargando docentes:', error);
-          alert('Error al cargar la lista de docentes');
+          alert('No se pudo cargar la lista de docentes');
         }
       }
 
-      // 5. Manejar envío del formulario
       async function handleSubmit(e) {
         e.preventDefault();
         const submitBtn = e.target.querySelector('button[type="submit"]');
-        
-        try {
-          submitBtn.disabled = true;
-          submitBtn.textContent = 'Enviando...';
-          
-          // Verificar sesión nuevamente antes de enviar
-          if (!await verifySession()) return;
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Enviando...';
 
-          // Resto de tu lógica de envío...
-          
+        const session = await verifySession();
+        if (!session) return;
+
+        const form = e.target;
+        const docenteId = form.docente.value;
+        const pregunta1 = parseInt(form.pregunta1.value);
+        const pregunta2 = parseInt(form.pregunta2.value);
+        const observaciones = form.observaciones.value.trim();
+
+        if (!docenteId || isNaN(pregunta1) || isNaN(pregunta2)) {
+          alert('Por favor completa todas las preguntas obligatorias.');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Enviar';
+          return;
+        }
+
+        try {
+          const { error } = await supabaseClient
+            .from('Evaluacion')
+            .insert([{
+              docente_id: docenteId,
+              estudiante_id: session.user.id,
+              pregunta1,
+              pregunta2,
+              observaciones
+            }]);
+
+          if (error) throw error;
+
+          alert('¡Evaluación enviada exitosamente!');
+          form.reset();
         } catch (error) {
-          console.error('Error enviando evaluación:', error);
-          alert(error.message || 'Error al enviar la evaluación');
+          console.error('Error guardando evaluación:', error);
+          alert('Hubo un error al enviar tu evaluación.');
         } finally {
           submitBtn.disabled = false;
           submitBtn.textContent = 'Enviar';
         }
       }
 
-      // Inicialización principal
-      try {
-        if (!await verifySession()) return;
+      // Inicialización
+      const session = await verifySession();
+      if (session) {
         await loadTeachers();
         document.getElementById('form-cuestionario').addEventListener('submit', handleSubmit);
-      } catch (error) {
-        console.error('Error inicial:', error);
-        window.location.href = 'index.html';
       }
     });
   </script>
