@@ -202,21 +202,24 @@ async function cargarDocentes() {
 document.getElementById('form-cuestionario').addEventListener('submit', async (e) => {
   e.preventDefault();
   
-  // 1. Verificar autenticación
+  // Mostrar ID de usuario en consola para depuración
   const userId = localStorage.getItem('user_id');
+  console.log('ID de usuario obtenido:', userId);
+  
   if (!userId) {
     alert('Debes iniciar sesión primero');
     return window.location.href = 'index.html';
   }
 
-  // 2. Validar selección de docente
   const docenteId = e.target.docente.value;
+  console.log('ID de docente seleccionado:', docenteId);
+  
   if (!docenteId) {
     alert('Por favor seleccione un docente');
     return;
   }
 
-  // 3. Validar respuestas
+  // Validar respuestas
   const respuestas = {};
   for (let i = 1; i <= 12; i++) {
     const respuesta = e.target.querySelector(`input[name="q${i}"]:checked`)?.value;
@@ -226,41 +229,57 @@ document.getElementById('form-cuestionario').addEventListener('submit', async (e
     }
     respuestas[`q${i}`] = parseInt(respuesta);
   }
+  console.log('Respuestas:', respuestas);
 
-  // 4. Obtener semestre y comentarios
+  // Obtener semestre y comentarios
   const now = new Date();
   const semestre = `${now.getFullYear()}-${now.getMonth() < 6 ? '1' : '2'}`;
   const comentarios = e.target.comentarios.value;
 
   try {
-    // 5. Preparar datos para insertar
+    // Preparar datos para insertar
     const evaluationData = {
       user_id: parseInt(userId),
       docente_id: parseInt(docenteId),
       semestre: semestre,
       comentarios: comentarios,
-      ...respuestas  // Spread operator para incluir todas las respuestas (q1, q2, etc.)
+      ...respuestas
     };
 
-    // 6. Insertar en la nueva estructura
-    const { data, error } = await supabase
-      .from('answer')
-      .insert([evaluationData])
-      .select();
+    console.log('Datos a insertar:', evaluationData);
 
-    if (error) throw error;
-    
-    console.log('Evaluación registrada:', data);
+    // INTENTO 1: Insertar sin .select() primero
+    let { error: insertError } = await supabase
+      .from('answer')  // <-- Verifica si necesitas usar 'answer' en minúsculas
+      .insert([evaluationData]);
+
+    if (insertError) {
+      console.error('Error en inserción directa:', insertError);
+      
+      // INTENTO 2: Insertar con .select() para diagnóstico
+      const { data, error: selectError } = await supabase
+        .from('answer')
+        .insert([evaluationData])
+        .select('*');
+      
+      if (selectError) throw selectError;
+      
+      console.log('Datos insertados con select:', data);
+    }
+
     alert('¡Evaluación enviada con éxito!');
     e.target.reset();
 
   } catch (error) {
-    console.error('Error al enviar evaluación:', {
+    console.error('Error completo:', {
       message: error.message,
       details: error.details,
-      code: error.code
+      code: error.code,
+      hint: error.hint,
+      stack: error.stack
     });
-    alert('Error al enviar la evaluación. Por favor intente nuevamente.');
+    
+    alert(`Error al enviar: ${error.message || 'Ver consola para detalles'}`);
   }
 });
     cargarDocentes();
