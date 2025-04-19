@@ -71,117 +71,104 @@
     </div>
   </form>
 
-  <script>
-    // 1. Configuración de Supabase (versión segura)
-    const initSupabase = () => {
-      const supabaseUrl = 'https://crwjvwwaksvdnryjmzvl.supabase.co';
-      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyd2p2d3dha3N2ZG5yeWptenZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDY3ODksImV4cCI6MjA2MDMyMjc4OX0.s08kYWtmpc9c2b9VGwcKuiEna48KGoK2vz4y8rafyrE';
+<script>
+  // Configuración IDÉNTICA a index.html
+  const supabaseUrl = 'https://crwjvwwaksvdnryjmzvl.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyd2p2d3dha3N2ZG5yeWptenZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDY3ODksImV4cCI6MjA2MDMyMjc4OX0.s08kYWtmpc9c2b9VGwcKuiEna48KGoK2vz4y8rafyrE';
+  
+  const supabase = supabase.createClient(supabaseUrl, supabaseKey, {
+    auth: {
+      persistSession: true,
+      storage: window.localStorage,
+      autoRefreshToken: true
+    }
+  });
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    try {
+      // Verificación de sesión MEJORADA
+      const storedSession = JSON.parse(localStorage.getItem('sb-auth-token'));
       
-      return supabase.createClient(supabaseUrl, supabaseKey, {
-        auth: {
-          persistSession: true,
-          storage: localStorage
-        }
-      });
-    };
-
-    // 2. Función principal (con verificación robusta de sesión)
-    const main = async () => {
-      try {
-        // Inicializar Supabase
-        const supabase = initSupabase();
+      if (storedSession) {
+        // Restaurar sesión manualmente si es necesario
+        const { data: { session }, error } = await supabase.auth.setSession(
+          storedSession.currentSession.access_token,
+          storedSession.currentSession.refresh_token
+        );
         
-        // Verificar sesión DE DOS FORMAS
-        const { data: { session } } = await supabase.auth.getSession();
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!session || !user) {
-          console.warn('Redirigiendo a login - No hay sesión activa');
-          window.location.href = 'index.html';
-          return;
-        }
-
-        console.log('Usuario autenticado:', user.email);
-        
-        // Cargar docentes
-        await loadTeachers(supabase, user.id);
-        
-        // Configurar formulario
-        setupForm(supabase, user.id);
-
-      } catch (error) {
-        console.error('Error en carga inicial:', error);
-        alert('Error al cargar la aplicación. Recarga la página.');
-      }
-    };
-
-    // 3. Cargar docentes (con verificación de rol)
-    const loadTeachers = async (supabase, currentUserId) => {
-      const select = document.getElementById('docente');
-      select.innerHTML = '<option value="">Cargando docentes...</option>';
-      
-      try {
-        const { data: teachers, error } = await supabase
-          .from('User')
-          .select('id, firstName, lastName')
-          .eq('role', 'docente')
-          .eq('active', true)
-          .neq('id', currentUserId)  // Excluir al usuario actual
-          .order('lastName', { ascending: true });
-
         if (error) throw error;
-
-        select.innerHTML = '<option value="">-- Seleccione docente --</option>';
-        
-        teachers.forEach(teacher => {
-          const option = document.createElement('option');
-          option.value = teacher.id;
-          option.textContent = `${teacher.lastName}, ${teacher.firstName}`;
-          select.appendChild(option);
-        });
-
-      } catch (error) {
-        console.error('Error cargando docentes:', error);
-        select.innerHTML = '<option value="">Error al cargar docentes</option>';
+        if (!session) throw new Error('No se pudo restaurar la sesión');
       }
-    };
 
-    // 4. Configurar envío del formulario
-    const setupForm = (supabase, userId) => {
+      // Verificación estándar
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        console.error('Error de autenticación:', authError);
+        window.location.href = 'index.html';
+        return;
+      }
+
+      console.log('Usuario autenticado:', user.email);
+      
+      // Resto de tu lógica (cargar docentes, etc.)
+      await loadTeachers();
+      
+      // Configurar evento de envío
+      document.getElementById('form-cuestionario').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await handleFormSubmit();
+      });
+
+    } catch (error) {
+      console.error('Error inicial:', error);
+      window.location.href = 'index.html';
+    }
+  });
+    // =============================================
+    // PASO 4: Configuración del formulario
+    // =============================================
+    async function setupForm() {
       const form = document.getElementById('form-cuestionario');
       
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const submitBtn = e.target.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Enviando...';
         
         try {
-          submitBtn.disabled = true;
-          submitBtn.textContent = 'Enviando...';
-          
-          const docenteId = form.docente.value;
-          if (!docenteId) throw new Error('Seleccione un docente');
+          // Verificar autenticación antes de enviar
+          const isAuthenticated = await checkAuth();
+          if (!isAuthenticated) return;
 
-          // Obtener semestre automático
+          const docenteId = form.docente.value;
+          if (!docenteId) throw new Error('Debe seleccionar un docente');
+
+          // Obtener semestre automático (2025-1 o 2025-2)
           const now = new Date();
           const semester = `${now.getFullYear()}-${now.getMonth() < 6 ? '1' : '2'}`;
           
+          // Obtener ID de usuario
+          const { data: { user } } = await supabase.auth.getUser();
+          
           // Recoger respuestas
           const answers = [];
-          for (let i = 1; i <= 3; i++) {
-            const value = form.querySelector(`input[name="q${i}"]:checked`)?.value;
-            if (!value) throw new Error(`Responda la pregunta ${i}`);
+          for (let i = 1; i <= 12; i++) { // Ajusta según número de preguntas
+            const respuesta = form.querySelector(`input[name="q${i}"]:checked`)?.value;
+            if (!respuesta) throw new Error(`Debe responder la pregunta ${i}`);
             
             answers.push({
-              user_id: userId,
+              user_id: user.id,
               docente_id: docenteId,
               question_id: i,
-              respuesta: parseInt(value),
+              respuesta: parseInt(respuesta),
               semestre: semester,
-              comentarios: i === 3 ? form.comentarios.value : null
+              comentarios: i === 12 ? form.comentarios.value : null
             });
           }
 
-          // Insertar en Supabase
+          // Insertar respuestas
           const { error } = await supabase
             .from('Answer')
             .insert(answers);
@@ -189,21 +176,59 @@
           if (error) throw error;
 
           alert('¡Evaluación enviada con éxito!');
-          form.reset();
           window.location.href = 'gracias.html';
 
         } catch (error) {
           console.error('Error enviando evaluación:', error);
-          alert(error.message || 'Error al enviar. Intente nuevamente.');
+          alert(error.message || 'Error al enviar la evaluación. Intente nuevamente.');
         } finally {
           submitBtn.disabled = false;
-          submitText.textContent = 'Enviar';
+          submitBtn.textContent = 'Enviar';
         }
       });
-    };
+    }
 
-    // 5. Iniciar cuando el DOM esté listo
-    document.addEventListener('DOMContentLoaded', main);
+    // =============================================
+    // PASO 5: Inicialización principal
+    // =============================================
+    document.addEventListener('DOMContentLoaded', async () => {
+      // 1. Inicializar Supabase
+      if (!initSupabase()) {
+// Diagnóstico profundo
+console.log("Estado de autenticación completo:");
+const { data: { session } } = await supabase.auth.getSession();
+const { data: { user } } = await supabase.auth.getUser();
+const authState = await supabase.auth.getSession();
+
+console.log({
+  session,
+  user,
+  authState,
+  localStorage: window.localStorage.getItem(`sb-${supabaseUrl.replace(/https?:\/\//, '')}-auth-token`)
+});
+
+if (!session || !user) {
+  console.log("Redirección necesaria porque:", {
+    hasSession: !!session,
+    hasUser: !!user,
+    sessionData: session,
+    userData: user
+  });
+  window.location.href = "index.html";
+  return;
+}
+      }
+
+      // 2. Verificar autenticación
+      const isAuthenticated = await checkAuth();
+      if (!isAuthenticated) return;
+
+      // 3. Cargar datos
+      await loadTeachers();
+      await setupForm();
+      
+      console.log("Aplicación cargada correctamente");
+    });
   </script>
 </body>
 </html>
