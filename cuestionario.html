@@ -244,7 +244,7 @@ document.getElementById('form-cuestionario').addEventListener('submit', async (e
 
     // 6. Insertar en la nueva estructura
     const { data, error } = await supabase
-      .from('Answer')
+      .from('answer')
       .insert([evaluationData])
       .select();
 
