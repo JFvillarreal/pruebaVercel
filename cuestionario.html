@@ -2,159 +2,81 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Evaluación Docente</title>
-  <link rel="stylesheet" href="css/cuestionario.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <title>Cuestionario</title>
 </head>
 <body>
-  <div class="header">
-    <div class="title">
-      <h1>Universidad El Bosque</h1>
-      <h2>Evaluación docente</h2>
-    </div>
-    <img src="/img/logoUEB.png" alt="Logo Universidad" class="logo">
-  </div>
-
-  <form id="form-cuestionario" class="container">
-    <label for="docente">Seleccione el docente:</label>
-    <select name="docente" required></select>
-
-    <div class="pregunta">
-      <label for="pregunta1">1. ¿El docente explica claramente los temas?</label>
-      <select name="pregunta1" required>
-        <option value="">-- Seleccione --</option>
-        <option value="1">Nunca</option>
-        <option value="2">Rara vez</option>
-        <option value="3">A veces</option>
-        <option value="4">Frecuentemente</option>
-        <option value="5">Siempre</option>
-      </select>
-    </div>
-
-    <div class="pregunta">
-      <label for="pregunta2">2. ¿El docente promueve la participación en clase?</label>
-      <select name="pregunta2" required>
-        <option value="">-- Seleccione --</option>
-        <option value="1">Nunca</option>
-        <option value="2">Rara vez</option>
-        <option value="3">A veces</option>
-        <option value="4">Frecuentemente</option>
-        <option value="5">Siempre</option>
-      </select>
-    </div>
-
-    <div class="pregunta">
-      <label for="observaciones">Observaciones adicionales (opcional):</label>
-      <textarea name="observaciones" rows="4" placeholder="Escribe tus comentarios..."></textarea>
-    </div>
-
+  <h1>Evaluación Docente</h1>
+  <form id="form-cuestionario">
+    <select name="docente" required>
+      <option value="">-- Seleccione un docente --</option>
+    </select><br><br>
+    <!-- Preguntas del cuestionario aquí -->
     <button type="submit">Enviar</button>
   </form>
 
-  <script>
- document.addEventListener('DOMContentLoaded', async () => {
-  const user = await verifySession();
-  if (!user) return;
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-  await loadTeachers();
-  document.getElementById('form-cuestionario').addEventListener('submit', handleSubmit);
-});
+    const supabase = createClient(
+      'https://crwjvwwaksvdnryjmzvl.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyd2p2d3dha3N2ZG5yeWptenZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDY3ODksImV4cCI6MjA2MDMyMjc4OX0.s08kYWtmpc9c2b9VGwcKuiEna48KGoK2vz4y8rafyrE'
+    );
 
-async function verifySession() {
-  try {
-    const { data, error } = await supabaseClient.auth.getSession();
-
-    if (error || !data.session || !data.session.user) {
-      throw new Error('Sesión inválida');
+    const userId = localStorage.getItem('user_id');
+    if (!userId) {
+      alert('Debes iniciar sesión primero');
+      window.location.href = 'index.html';
     }
 
-    return data.session.user;
-  } catch (error) {
-    console.error('Sesión inválida:', error.message);
-    await supabaseClient.auth.signOut();
-    window.localStorage.clear();
-    window.location.href = 'index.html';
-    return null;
-  }
-}
+    // Cargar docentes
+    async function cargarDocentes() {
+      const { data, error } = await supabase
+        .from('User')
+        .select('id, firstName, lastName')
+        .eq('role', 'docente')
+        .order('lastName', { ascending: true });
 
-      async function loadTeachers() {
-        try {
-          const { data: teachers, error } = await supabaseClient
-            .from('User')
-            .select('id, firstName, lastName')
-            .eq('role', 'docente')
-            .order('lastName', { ascending: true });
-
-          if (error) throw error;
-
-          const select = document.querySelector('select[name="docente"]');
-          select.innerHTML = '<option value="">-- Seleccione --</option>';
-          teachers.forEach(t => {
-            const option = document.createElement('option');
-            option.value = t.id;
-            option.textContent = `${t.firstName} ${t.lastName}`;
-            select.appendChild(option);
-          });
-        } catch (error) {
-          console.error('Error cargando docentes:', error);
-          alert('No se pudo cargar la lista de docentes');
-        }
+      if (error) {
+        console.error(error);
+        alert('Error al cargar docentes');
+        return;
       }
 
-      async function handleSubmit(e) {
-        e.preventDefault();
-        const submitBtn = e.target.querySelector('button[type="submit"]');
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Enviando...';
+      const select = document.querySelector('select[name="docente"]');
+      data.forEach(d => {
+        const option = document.createElement('option');
+        option.value = d.id;
+        option.textContent = `${d.firstName} ${d.lastName}`;
+        select.appendChild(option);
+      });
+    }
 
-        const session = await verifySession();
-        if (!session) return;
+    // Enviar evaluación
+    document.getElementById('form-cuestionario').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const docenteId = e.target.querySelector('select[name="docente"]').value;
 
-        const form = e.target;
-        const docenteId = form.docente.value;
-        const pregunta1 = parseInt(form.pregunta1.value);
-        const pregunta2 = parseInt(form.pregunta2.value);
-        const observaciones = form.observaciones.value.trim();
+      const { error } = await supabase
+        .from('Evaluacion')
+        .insert([
+          {
+            estudiante_id: userId,
+            docente_id: docenteId,
+            // otras respuestas del cuestionario aquí si las agregas
+          }
+        ]);
 
-        if (!docenteId || isNaN(pregunta1) || isNaN(pregunta2)) {
-          alert('Por favor completa todas las preguntas obligatorias.');
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Enviar';
-          return;
-        }
-
-        try {
-          const { error } = await supabaseClient
-            .from('Evaluacion')
-            .insert([{
-              docente_id: docenteId,
-              estudiante_id: session.user.id,
-              pregunta1,
-              pregunta2,
-              observaciones
-            }]);
-
-          if (error) throw error;
-
-          alert('¡Evaluación enviada exitosamente!');
-          form.reset();
-        } catch (error) {
-          console.error('Error guardando evaluación:', error);
-          alert('Hubo un error al enviar tu evaluación.');
-        } finally {
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Enviar';
-        }
-      }
-
-      // Inicialización
-      const session = await verifySession();
-      if (session) {
-        await loadTeachers();
-        document.getElementById('form-cuestionario').addEventListener('submit', handleSubmit);
+      if (error) {
+        alert('Error al enviar evaluación');
+        console.error(error);
+      } else {
+        alert('Evaluación enviada con éxito');
+        e.target.reset();
       }
     });
+
+    cargarDocentes();
   </script>
 </body>
 </html>
+

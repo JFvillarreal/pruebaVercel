@@ -2,97 +2,48 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Login - Evaluación Docente</title>
-  <link rel="stylesheet" href="css/login.css">
-  <!-- Cargar Supabase SIN defer para evitar problemas de timing -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <title>Login Evaluación</title>
 </head>
 <body>
-  <div class="container">
-    <div class="left">
-      <div class="title">Universidad El Bosque</div>
-      <div class="subtitle">Evaluación docente</div>
-      <div class="login-container">
-        <form id="loginForm">
-          <input type="email" id="email" placeholder="Correo electrónico" required />
-          <input type="password" id="password" placeholder="Contraseña" required />
-          <button type="submit">Ingresar</button>
-          <div class="error" id="errorMsg"></div>
-        </form>
-      </div>
-    </div>
-    <div class="right">
-      <img src="/img/logoUEB.png" alt="Logo Universidad" />
-    </div>
-  </div>
+  <h1>Login Evaluación Docente</h1>
+  <form id="login-form">
+    <input type="email" id="email" placeholder="Correo" required><br>
+    <input type="password" id="password" placeholder="Contraseña" required><br>
+    <button type="submit">Entrar</button>
+  </form>
 
-<script>
-  document.addEventListener('DOMContentLoaded', async () => {
-    if (typeof supabase === 'undefined') {
-      console.error('Error: La biblioteca Supabase no se cargó correctamente');
-      document.getElementById('errorMsg').textContent = 'Error técnico. Por favor recarga la página.';
-      return;
-    }
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-    const supabaseUrl = 'https://crwjvwwaksvdnryjmzvl.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyd2p2d3dha3N2ZG5yeWptenZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDY3ODksImV4cCI6MjA2MDMyMjc4OX0.s08kYWtmpc9c2b9VGwcKuiEna48KGoK2vz4y8rafyrE';
-    
-    const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(
+      'https://crwjvwwaksvdnryjmzvl.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyd2p2d3dha3N2ZG5yeWptenZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDY3ODksImV4cCI6MjA2MDMyMjc4OX0.s08kYWtmpc9c2b9VGwcKuiEna48KGoK2vz4y8rafyrE'
+    );
 
-    const loginForm = document.getElementById('loginForm');
-    const emailInput = document.getElementById('email');
-    const passwordInput = document.getElementById('password');
-    const errorMsg = document.getElementById('errorMsg');
-
-    loginForm.addEventListener('submit', async (e) => {
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      errorMsg.textContent = '';
-      emailInput.classList.remove('input-error');
-      passwordInput.classList.remove('input-error');
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
 
-      const email = emailInput.value.trim();
-      const password = passwordInput.value;
+      const { data: users, error } = await supabase
+        .from('User')
+        .select('*')
+        .eq('email', email)
+        .eq('password', password)
+        .maybeSingle(); // Asumimos que no hay más de un usuario con mismo email
 
-      if (!email || !password) {
-        errorMsg.textContent = 'Por favor ingresa tu correo y contraseña';
-        if (!email) emailInput.classList.add('input-error');
-        if (!password) passwordInput.classList.add('input-error');
+      if (error || !users) {
+        alert('Credenciales incorrectas');
         return;
       }
 
-      const submitBtn = loginForm.querySelector('button[type="submit"]');
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Verificando...';
-
-      try {
-const { data, error } = await supabaseClient.auth.signInWithPassword({
-  email,
-  password
-});
-
-if (error) {
-  alert('Credenciales inválidas');
-} else {
-  // 🔁 Esperar unos milisegundos antes de redirigir
-  setTimeout(() => {
-    window.location.href = 'cuestionario.html';
-  }, 300);
-}
-
-        // Login exitoso
-        localStorage.setItem('userId', data.id); // Cambia 'id' si tu columna tiene otro nombre
-        window.location.href = 'cuestionario.html';
-
-      } catch (err) {
-        console.error('Error consultando tabla User:', err);
-        errorMsg.textContent = 'Error de conexión. Intenta más tarde.';
-      } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Ingresar';
-      }
+      // Guardamos usuario en localStorage
+      localStorage.setItem('user_id', users.id);
+      localStorage.setItem('user_name', users.firstName + ' ' + users.lastName);
+      window.location.href = 'cuestionario.html';
     });
-  });
-</script>
+  </script>
 </body>
 </html>
+
