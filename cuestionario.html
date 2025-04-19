@@ -202,56 +202,60 @@ async function cargarDocentes() {
 document.getElementById('form-cuestionario').addEventListener('submit', async (e) => {
   e.preventDefault();
   
-  // Verificar que el usuario esté autenticado
-  const userId = (await supabase.auth.getUser()).data.user?.id;
-  if (!userId) {
-    alert('Debes iniciar sesión primero');
+  // 1. Verificar autenticación primero
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  
+  if (authError || !user) {
+    alert('Debes iniciar sesión para enviar evaluaciones');
     return window.location.href = 'index.html';
   }
 
-  // Obtener datos del formulario
+  // 2. Obtener datos del formulario
   const docenteId = e.target.docente.value;
   if (!docenteId) {
     alert('Por favor seleccione un docente');
     return;
   }
 
-  // Verificar todas las respuestas
+  // 3. Validar todas las respuestas
+  const respuestas = {};
   for (let i = 1; i <= 12; i++) {
-    if (!e.target.querySelector(`input[name="q${i}"]:checked`)) {
+    const respuesta = e.target.querySelector(`input[name="q${i}"]:checked`)?.value;
+    if (!respuesta) {
       alert(`Por favor responda la pregunta ${i}`);
       return;
     }
+    respuestas[`q${i}`] = parseInt(respuesta);
   }
 
-  // Obtener semestre actual (formato: 'YYYY-S')
+  // 4. Obtener semestre actual (formato 'YYYY-S')
   const now = new Date();
   const semestre = `${now.getFullYear()}-${now.getMonth() < 6 ? '1' : '2'}`;
   const comentarios = e.target.comentarios.value;
 
   try {
-    // Preparar todas las inserciones
+    // 5. Preparar datos para enviar
     const inserts = [];
     for (let i = 1; i <= 12; i++) {
       inserts.push({
-        user_id: userId,
+        user_id: user.id,  // Usamos el ID del usuario autenticado
         docente_id: docenteId,
         question_id: i,
-        respuesta: parseInt(e.target.querySelector(`input[name="q${i}"]:checked`).value),
+        respuesta: respuestas[`q${i}`],
         semestre: semestre,
-        comentarios: i === 12 ? comentarios : null // Solo guardar comentarios con la última pregunta
+        comentarios: i === 12 ? comentarios : null
       });
     }
 
-    // Insertar todas las respuestas en una sola transacción
-    const { data, error } = await supabase
+    // 6. Enviar datos a Supabase
+    const { error } = await supabase
       .from('Answer')
       .insert(inserts);
 
     if (error) throw error;
 
-    // Éxito
-    alert('Evaluación enviada con éxito!');
+    // 7. Éxito
+    alert('¡Evaluación enviada con éxito!');
     e.target.reset();
 
   } catch (error) {
@@ -259,6 +263,14 @@ document.getElementById('form-cuestionario').addEventListener('submit', async (e
     alert(`Error al enviar: ${error.message}`);
   }
 });
+// Prueba esta función en la consola para verificar la conexión
+async function testAuth() {
+  const { data: { user }, error } = await supabase.auth.getUser();
+  console.log('Usuario actual:', user);
+  console.log('Error:', error);
+  return user;
+}
+testAuth();
 
     cargarDocentes();
   </script>
