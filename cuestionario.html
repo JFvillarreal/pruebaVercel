@@ -206,32 +206,44 @@
     }
 
     // Cargar asignaturas
-    async function cargarAsignaturas() {
-      try {
-        const { data: asignaturas, error } = await supabase
-          .from('asignatura')
-          .select('id, nombre')
-          .eq('active', true)
-          .order('nombre', { ascending: true });
+  // Versión modificada para manejar posibles nombres diferentes
+async function cargarAsignaturas() {
+  try {
+    // Intenta primero con 'Asignatura' (como la definiste)
+    let { data: asignaturas, error } = await supabase
+      .from('asignatura')
+      .select('id, nombre')
+      .eq('active', true)
+      .order('nombre', { ascending: true });
 
-        if (error) throw error;
-
-        const select = document.querySelector('select[name="asignatura"]');
-        select.innerHTML = '<option value="">-- Seleccione una asignatura --</option>';
-
-        if (asignaturas && asignaturas.length > 0) {
-          asignaturas.forEach(asignatura => {
-            const option = document.createElement('option');
-            option.value = asignatura.id;
-            option.textContent = asignatura.nombre;
-            select.appendChild(option);
-          });
-        }
-      } catch (error) {
-        console.error('Error cargando asignaturas:', error);
-        alert('Error al cargar asignaturas');
-      }
+    // Si falla, prueba con 'asignatura' en minúsculas
+    if (error) {
+      console.log('Probando con nombre en minúsculas...');
+      ({ data: asignaturas, error } = await supabase
+        .from('asignatura')
+        .select('id, nombre')
+        .eq('active', true)
+        .order('nombre', { ascending: true }));
     }
+
+    if (error) throw error;
+
+    const select = document.querySelector('select[name="asignatura"]');
+    select.innerHTML = '<option value="">-- Seleccione una asignatura --</option>';
+
+    if (asignaturas && asignaturas.length > 0) {
+      asignaturas.forEach(asignatura => {
+        const option = document.createElement('option');
+        option.value = asignatura.id;
+        option.textContent = asignatura.nombre;
+        select.appendChild(option);
+      });
+    }
+  } catch (error) {
+    console.error('Error cargando asignaturas:', error);
+    alert('Error al cargar asignaturas. Verifica que la tabla exista y tenga datos.');
+  }
+}
 
     // Enviar evaluación (modificado para incluir asignatura)
     document.getElementById('form-cuestionario').addEventListener('submit', async (e) => {
