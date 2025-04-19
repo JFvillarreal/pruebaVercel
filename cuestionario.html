@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <title>Evaluación Docente</title>
   <link rel="stylesheet" href="css/cuestionario.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Mover el script de Supabase al head con defer -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 </head>
 <body>
   <div class="header">
@@ -26,16 +27,10 @@
       </select>
     </div>
     
-    <!-- Asignatura (si es necesaria) -->
-    <div class="question" id="asignatura-container" style="display:none;">
-      <p>Seleccione la asignatura:</p>
-      <select id="asignatura" name="asignatura">
-        <option value="">-- Seleccione --</option>
-      </select>
+    <!-- Contenedor de preguntas -->
+    <div id="preguntas-container">
+      <p>Cargando preguntas...</p>
     </div>
-    
-    <!-- Preguntas dinámicas -->
-    <div id="preguntas-container"></div>
     
     <div class="question">
       <p>Comentarios adicionales (opcional):</p>
@@ -43,211 +38,240 @@
     </div>
     
     <div class="navigation-buttons">
-      <button type="submit">Enviar</button>
+      <button type="submit" id="submit-btn" disabled>Enviar</button>
     </div>
   </form>
 
-  <script>
-    // Configuración de Supabase
-    const supabaseUrl = 'https://crwjvwwaksvdnryjmzvl.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyd2p2d3dha3N2ZG5yeWptenZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDY3ODksImV4cCI6MjA2MDMyMjc4OX0.s08kYWtmpc9c2b9VGwcKuiEna48KGoK2vz4y8rafyrE';
-    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
-
-    // Variables globales
-    let userId = null;
-    let currentSemester = '';
-    let questions = [];
-
-    // Función para determinar el semestre actual
-    function getCurrentSemester() {
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = now.getMonth() + 1; // Enero es 0
-      
-      // Primer semestre: enero (1) a junio (6)
-      // Segundo semestre: julio (7) a diciembre (12)
-      const semester = month <= 6 ? '1' : '2';
-      
-      return `${year}-${semester}`;
-    }
-
-    // Cargar datos al iniciar
+  <!-- Script principal con defer -->
+  <script defer>
+    // Esperar a que todo esté cargado
     document.addEventListener('DOMContentLoaded', async () => {
       try {
-        // Obtener usuario logueado
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
+        // 1. Inicializar Supabase
+        const supabaseUrl = 'https://crwjvwwaksvdnryjmzvl.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyd2p2d3dha3N2ZG5yeWptenZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDY3ODksImV4cCI6MjA2MDMyMjc4OX0.s08kYWtmpc9c2b9VGwcKuiEna48KGoK2vz4y8rafyrE';
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+        
+        // 2. Obtener usuario logueado
+        const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+        if (userError || !user) {
           window.location.href = 'index.html';
           return;
         }
-        userId = user.id;
-        currentSemester = getCurrentSemester();
+        const userId = user.id;
 
-        // Cargar docentes (usuarios con rol 'docente')
-        await loadTeachers();
-        
-        // Cargar preguntas
-        const { data: preguntas, error } = await supabase
-          .from('Question')
-          .select('*')
-          .order('id', { ascending: true });
+        // 3. Cargar docentes y preguntas en paralelo
+        const [teachers, questions] = await Promise.all([
+          loadTeachers(supabaseClient),
+          loadQuestions(supabaseClient)
+        ]);
 
-        if (error) throw error;
+        // 4. Renderizar interfaz
+        renderTeachers(teachers);
+        renderQuestions(questions);
         
-        questions = preguntas;
-        renderQuestions(preguntas);
+        // Habilitar botón de enviar
+        document.getElementById('submit-btn').disabled = false;
+
+        // 5. Manejar envío del formulario
+        document.getElementById('form-cuestionario').addEventListener('submit', (e) => {
+          e.preventDefault();
+          handleFormSubmit(e, supabaseClient, userId);
+        });
 
       } catch (error) {
-        console.error('Error al cargar datos:', error);
-        alert('Error al cargar el cuestionario. Recarga la página.');
+        console.error('Error inicial:', error);
+        alert('Error al cargar la aplicación. Recarga la página.');
       }
     });
 
-    // Cargar docentes desde la tabla User
-    async function loadTeachers() {
-      const selectDocente = document.getElementById('docente');
-      
+    // Función para cargar docentes
+    async function loadTeachers(supabaseClient) {
       try {
-        const { data: teachers, error } = await supabase
+        const { data, error } = await supabaseClient
           .from('User')
           .select('id, firstName, lastName')
           .eq('role', 'docente')
           .eq('active', true)
           .order('lastName', { ascending: true });
-
-        if (error) throw error;
-
-        // Limpiar y llenar el select
-        selectDocente.innerHTML = '<option value="">-- Seleccione docente --</option>';
         
-        teachers.forEach(teacher => {
-          const option = document.createElement('option');
-          option.value = teacher.id;
-          option.textContent = `${teacher.lastName}, ${teacher.firstName}`;
-          selectDocente.appendChild(option);
-        });
-
+        if (error) throw error;
+        return data || [];
       } catch (error) {
-        console.error('Error al cargar docentes:', error);
-        selectDocente.innerHTML = '<option value="">Error al cargar docentes</option>';
+        console.error('Error cargando docentes:', error);
+        return [];
       }
     }
 
-    // Renderizar preguntas (similar al anterior)
-    function renderQuestions(preguntas) {
-      const container = document.getElementById('preguntas-container');
-      container.innerHTML = ''; // Limpiar contenedor
-      
-      preguntas.forEach((pregunta, index) => {
-        const questionDiv = document.createElement('div');
-        questionDiv.className = 'question';
+    // Función para cargar preguntas
+    async function loadQuestions(supabaseClient) {
+      try {
+        const { data, error } = await supabaseClient
+          .from('Question')
+          .select('id, text')
+          .order('id', { ascending: true });
         
-        questionDiv.innerHTML = `
-          <p>${index + 1}. ${pregunta.text}</p>
+        if (error) throw error;
+        return data || [];
+      } catch (error) {
+        console.error('Error cargando preguntas:', error);
+        return [];
+      }
+    }
+
+    // Renderizar lista de docentes
+    function renderTeachers(teachers) {
+      const select = document.getElementById('docente');
+      select.innerHTML = '<option value="">-- Seleccione docente --</option>';
+      
+      if (teachers.length === 0) {
+        select.innerHTML = '<option value="">No hay docentes disponibles</option>';
+        return;
+      }
+      
+      teachers.forEach(teacher => {
+        const option = document.createElement('option');
+        option.value = teacher.id;
+        option.textContent = `${teacher.lastName}, ${teacher.firstName}`;
+        select.appendChild(option);
+      });
+    }
+
+    // Renderizar preguntas
+    function renderQuestions(questions) {
+      const container = document.getElementById('preguntas-container');
+      container.innerHTML = '';
+      
+      if (questions.length === 0) {
+        container.innerHTML = '<p>No hay preguntas disponibles</p>';
+        return;
+      }
+      
+      questions.forEach((question, index) => {
+        const div = document.createElement('div');
+        div.className = 'question';
+        div.innerHTML = `
+          <p>${index + 1}. ${question.text}</p>
           <div class="scale-options">
-            <label><input type="radio" name="q${pregunta.id}" value="1" required>1</label>
-            <label><input type="radio" name="q${pregunta.id}" value="2">2</label>
-            <label><input type="radio" name="q${pregunta.id}" value="3">3</label>
-            <label><input type="radio" name="q${pregunta.id}" value="4">4</label>
-            <label><input type="radio" name="q${pregunta.id}" value="5">5</label>
+            <label><input type="radio" name="q${question.id}" value="1" required>1</label>
+            <label><input type="radio" name="q${question.id}" value="2">2</label>
+            <label><input type="radio" name="q${question.id}" value="3">3</label>
+            <label><input type="radio" name="q${question.id}" value="4">4</label>
+            <label><input type="radio" name="q${question.id}" value="5">5</label>
           </div>
         `;
-        
-        container.appendChild(questionDiv);
+        container.appendChild(div);
       });
     }
 
     // Manejar envío del formulario
-    document.getElementById('form-cuestionario').addEventListener('submit', async (e) => {
-      e.preventDefault();
+    async function handleFormSubmit(event, supabaseClient, userId) {
+      const form = event.target;
+      const submitBtn = form.querySelector('button[type="submit"]');
+      const errorMsg = document.createElement('div');
+      errorMsg.className = 'error';
+      form.appendChild(errorMsg);
       
-      const formData = new FormData(e.target);
-      const docenteId = formData.get('docente');
-      const comentarios = formData.get('comentarios');
-
       try {
-        // 1. Buscar o crear el semesterEvaluationId
-        const semesterId = await getOrCreateSemesterEvaluation(currentSemester);
+        // Deshabilitar botón durante el envío
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Enviando...';
         
-        // 2. Crear evaluación (sin subjectId por ahora)
-        const { data: evaluation, error: evalError } = await supabase
+        const formData = new FormData(form);
+        const docenteId = formData.get('docente');
+        const comentarios = formData.get('comentarios');
+        
+        // Validación básica
+        if (!docenteId) {
+          throw new Error('Debe seleccionar un docente');
+        }
+
+        // Obtener semestre actual (2025-1 o 2025-2)
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentSemester = now.getMonth() < 6 ? '1' : '2'; // Enero-Junio = 1, Julio-Dic = 2
+        const semesterCode = `${currentYear}-${currentSemester}`;
+
+        // 1. Crear o obtener semestre
+        const semesterId = await getOrCreateSemester(supabaseClient, semesterCode, currentYear, currentSemester);
+        
+        // 2. Crear evaluación
+        const { data: evaluation, error: evalError } = await supabaseClient
           .from('Evaluation')
-          .insert([
-            { 
-              userId: userId,
-              teacherId: docenteId,
-              semesterEvaluationId: semesterId,
-              subjectId: 1, // Puedes obtenerlo de un select si es necesario
-              date: new Date().toISOString().split('T')[0],
-              observations: comentarios,
-              status: 'completed'
-            }
-          ])
+          .insert([{
+            userId: userId,
+            teacherId: docenteId,
+            semesterEvaluationId: semesterId,
+            subjectId: 1, // Puedes cambiarlo según tu necesidad
+            date: now.toISOString().split('T')[0],
+            observations: comentarios,
+            status: 'completed'
+          }])
           .select()
           .single();
 
         if (evalError) throw evalError;
 
-        // 3. Guardar respuestas
-        const respuestas = [];
-        for (const [name, value] of formData.entries()) {
-          if (name.startsWith('q')) {
-            const questionId = name.substring(1);
-            respuestas.push({
+        // 3. Recoger respuestas
+        const answers = [];
+        formData.forEach((value, key) => {
+          if (key.startsWith('q')) {
+            const questionId = key.substring(1);
+            answers.push({
               questionId: parseInt(questionId),
               evaluationId: evaluation.id,
               userId: userId,
               answer: value,
               score: parseInt(value),
-              date: new Date().toISOString().split('T')[0]
+              date: now.toISOString().split('T')[0]
             });
           }
-        }
+        });
 
-        const { error: ansError } = await supabase
+        // 4. Insertar respuestas
+        const { error: ansError } = await supabaseClient
           .from('Answer')
-          .insert(respuestas);
+          .insert(answers);
 
         if (ansError) throw ansError;
 
-        // 4. Actualizar promedio
-        await updateEvaluationAverage(evaluation.id);
+        // 5. Actualizar promedio
+        await updateEvaluationAverage(supabaseClient, evaluation.id);
 
-        alert('¡Evaluación enviada con éxito!');
+        // Éxito - redirigir
         window.location.href = 'gracias.html';
 
       } catch (error) {
-        console.error('Error al enviar evaluación:', error);
-        alert('Ocurrió un error al enviar tus respuestas. Intenta nuevamente.');
+        console.error('Error enviando evaluación:', error);
+        errorMsg.textContent = error.message || 'Error al enviar la evaluación';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Enviar';
       }
-    });
+    }
 
-    // Función para obtener o crear el semestre
-    async function getOrCreateSemesterEvaluation(semesterCode) {
-      // Primero buscamos si ya existe
-      const { data: existing, error: searchError } = await supabase
+    // Función auxiliar para manejar semestres
+    async function getOrCreateSemester(supabaseClient, code, year, semester) {
+      // Buscar si ya existe
+      const { data: existing, error: searchError } = await supabaseClient
         .from('SemesterEvaluation')
         .select('id')
-        .eq('code', semesterCode)
+        .eq('code', code)
         .single();
 
       if (!searchError && existing) return existing.id;
 
-      // Si no existe, lo creamos
-      const [year, sem] = semesterCode.split('-');
-      const startDate = sem === '1' ? `${year}-01-01` : `${year}-07-01`;
-      const endDate = sem === '1' ? `${year}-06-30` : `${year}-12-31`;
+      // Crear nuevo semestre
+      const startDate = semester === '1' ? `${year}-01-01` : `${year}-07-01`;
+      const endDate = semester === '1' ? `${year}-06-30` : `${year}-12-31`;
 
-      const { data: newSemester, error: createError } = await supabase
+      const { data: newSemester, error: createError } = await supabaseClient
         .from('SemesterEvaluation')
-        .insert([
-          {
-            code: semesterCode,
-            startDate: startDate,
-            endDate: endDate,
-            description: `Evaluación ${sem === '1' ? 'Primer' : 'Segundo'} Semestre ${year}`
-          }
-        ])
+        .insert([{
+          code: code,
+          startDate: startDate,
+          endDate: endDate,
+          description: `Evaluación ${semester === '1' ? 'Primer' : 'Segundo'} Semestre ${year}`
+        }])
         .select()
         .single();
 
@@ -255,11 +279,11 @@
       return newSemester.id;
     }
 
-    // Función para actualizar el promedio
-    async function updateEvaluationAverage(evalId) {
-      const { error } = await supabase
+    // Función auxiliar para actualizar promedio
+    async function updateEvaluationAverage(supabaseClient, evalId) {
+      const { error } = await supabaseClient
         .rpc('update_evaluation_average', { eval_id: evalId });
-
+      
       if (error) throw error;
     }
   </script>
