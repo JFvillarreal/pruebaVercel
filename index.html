@@ -4,10 +4,42 @@
   <meta charset="UTF-8">
   <title>Login - Evaluación Docente</title>
   <link rel="stylesheet" href="css/login.css">
-  <!-- Cargar Supabase con atributo defer -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <style>
+    .error-input {
+      border: 1px solid red !important;
+    }
+    .loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .loading-spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #3498db;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
 </head>
 <body>
+  <div class="loading" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+  </div>
+
   <div class="container">
     <div class="left">
       <div class="title">Universidad El Bosque</div>
@@ -26,18 +58,30 @@
     </div>
   </div>
 
-
   <script defer>
-    // 1. Esperar a que TODO esté cargado
-    window.addEventListener('load', async () => {
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Elementos del DOM
+      const loginForm = document.getElementById('loginForm');
+      const emailInput = document.getElementById('email');
+      const passwordInput = document.getElementById('password');
+      const errorMsg = document.getElementById('errorMsg');
+      const loadingOverlay = document.getElementById('loadingOverlay');
+
+      // 1. Verificar que todos los elementos existen
+      if (!loginForm || !emailInput || !passwordInput || !errorMsg || !loadingOverlay) {
+        console.error('Error: Elementos del DOM no encontrados');
+        alert('Error crítico en la aplicación. Por favor recarga la página.');
+        return;
+      }
+
+      // 2. Inicializar Supabase
+      let supabaseClient;
       try {
-        // 2. Verificar que Supabase está disponible
         if (typeof supabase === 'undefined') {
           throw new Error('La biblioteca Supabase no se cargó correctamente');
         }
         
-        // 3. Inicializar el cliente con nombre diferente
-        const supabaseClient = supabase.createClient(
+        supabaseClient = supabase.createClient(
           'https://crwjvwwaksvdnryjmzvl.supabase.co',
           'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyd2p2d3dha3N2ZG5yeWptenZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDY3ODksImV4cCI6MjA2MDMyMjc4OX0.s08kYWtmpc9c2b9VGwcKuiEna48KGoK2vz4y8rafyrE',
           {
@@ -48,62 +92,98 @@
             }
           }
         );
-        
-        console.log('Cliente Supabase inicializado:', supabaseClient);
 
-        // 4. Verificar sesión existente
+        // 3. Verificar sesión existente
         const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
         
-        if (sessionError) throw sessionError;
+        if (sessionError) {
+          console.error('Error al verificar sesión:', sessionError);
+        }
+        
         if (session) {
           window.location.href = 'cuestionario.html';
           return;
         }
 
-        // 5. Configurar formulario de login
-        const loginForm = document.getElementById('loginForm');
-        if (!loginForm) throw new Error('Formulario no encontrado');
-        
-        loginForm.addEventListener('submit', async (e) => {
-          e.preventDefault();
-          
-          const email = document.getElementById('email').value;
-          const password = document.getElementById('password').value;
-          const errorMsg = document.getElementById('errorMsg');
-          
-          if (!errorMsg) throw new Error('Elemento de error no encontrado');
-          errorMsg.textContent = '';
+      } catch (error) {
+        console.error('Error inicializando Supabase:', error);
+        errorMsg.textContent = 'Error al conectar con el servidor. Recarga la página.';
+        return;
+      }
 
-          try {
-            const { data, error } = await supabaseClient.auth.signInWithPassword({
-              email: email,
-              password: password
+      // 4. Manejar el envío del formulario
+      loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const email = emailInput.value.trim();
+        const password = passwordInput.value;
+        
+        // Resetear errores
+        errorMsg.textContent = '';
+        emailInput.classList.remove('error-input');
+        passwordInput.classList.remove('error-input');
+
+        // Validar campos
+        if (!email) {
+          errorMsg.textContent = 'Por favor ingresa tu correo electrónico';
+          emailInput.classList.add('error-input');
+          emailInput.focus();
+          return;
+        }
+
+        if (!password) {
+          errorMsg.textContent = 'Por favor ingresa tu contraseña';
+          passwordInput.classList.add('error-input');
+          passwordInput.focus();
+          return;
+        }
+
+        // Mostrar loading
+        loadingOverlay.style.display = 'flex';
+        const submitBtn = loginForm.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+
+        try {
+          // Intentar autenticación
+          const { data, error } = await supabaseClient.auth.signInWithPassword({
+            email: email,
+            password: password
+          });
+
+          if (error) {
+            console.error('Detalles del error de autenticación:', {
+              message: error.message,
+              status: error.status,
+              name: error.name
             });
 
-            if (error) throw error;
-
-            // Guardar manualmente la sesión
-            localStorage.setItem('sb-auth-data', JSON.stringify({
-              access_token: data.session.access_token,
-              refresh_token: data.session.refresh_token,
-              expires_at: data.session.expires_at
-            }));
-
-            // Redirigir con retraso para asegurar persistencia
-            setTimeout(() => {
-              window.location.href = 'cuestionario.html';
-            }, 300);
+            // Manejar diferentes tipos de errores
+            if (error.message.includes('Invalid login credentials')) {
+              errorMsg.textContent = 'Email o contraseña incorrectos';
+              emailInput.classList.add('error-input');
+              passwordInput.classList.add('error-input');
+            } else if (error.message.includes('Email not confirmed')) {
+              errorMsg.textContent = 'Por favor verifica tu email antes de ingresar';
+            } else {
+              errorMsg.textContent = `Error de autenticación: ${error.message}`;
+            }
             
-          } catch (error) {
-            console.error('Error en login:', error);
-            errorMsg.textContent = error.message || 'Error en la autenticación';
+            return;
           }
-        });
 
-      } catch (error) {
-        console.error('Error crítico:', error);
-        alert('Error inicializando la aplicación. Recarga la página.');
-      }
+          // Autenticación exitosa - redirigir
+          console.log('Autenticación exitosa. Datos de sesión:', data);
+          window.location.href = 'cuestionario.html';
+
+        } catch (error) {
+          console.error('Error inesperado durante autenticación:', error);
+          errorMsg.textContent = 'Error inesperado. Por favor intenta nuevamente.';
+        } finally {
+          // Ocultar loading y habilitar botón
+          loadingOverlay.style.display = 'none';
+          submitBtn.disabled = false;
+        }
+      });
     });
   </script>
 </body>
