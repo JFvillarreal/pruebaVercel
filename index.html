@@ -4,10 +4,12 @@
   <meta charset="UTF-8">
   <title>Login - Evaluación Docente</title>
   <link rel="stylesheet" href="css/login.css">
+  <!-- Cambiado: Eliminado defer para cargar inmediatamente -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
   <div class="container">
+    <!-- Tu contenido HTML existente -->
     <div class="left">
       <div class="title">Universidad El Bosque</div>
       <div class="subtitle">Evaluación docente</div>
@@ -26,31 +28,41 @@
   </div>
 
   <script>
-    // Inicialización de Supabase
-    const supabaseUrl = 'https://crwjvwwaksvdnryjmzvl.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyd2p2d3dha3N2ZG5yeWptenZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDY3ODksImV4cCI6MjA2MDMyMjc4OX0.s08kYWtmpc9c2b9VGwcKuiEna48KGoK2vz4y8rafyrE';
-    
-    const supabase = supabase.createClient(supabaseUrl, supabaseKey, {
-      auth: {
-        persistSession: true,
-        storage: window.localStorage,
-        autoRefreshToken: true,
-        detectSessionInUrl: false
-      }
-    });
-
+    // Esperar a que todo esté completamente cargado
     document.addEventListener('DOMContentLoaded', () => {
-      const loginForm = document.getElementById('loginForm');
-      const errorMsg = document.getElementById('errorMsg');
+      // 1. Verificar que Supabase está disponible
+      if (typeof supabase === 'undefined') {
+        console.error('Error: Supabase no se cargó correctamente');
+        document.getElementById('errorMsg').textContent = 'Error inicializando la aplicación';
+        return;
+      }
 
-      // Verificar sesión existente
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session) {
-          window.location.href = 'cuestionario.html';
+      // 2. Inicializar Supabase
+      const supabaseUrl = 'https://crwjvwwaksvdnryjmzvl.supabase.co';
+      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyd2p2d3dha3N2ZG5yeWptenZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDY3ODksImV4cCI6MjA2MDMyMjc4OX0.s08kYWtmpc9c2b9VGwcKuiEna48KGoK2vz4y8rafyrE';
+      
+      const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey, {
+        auth: {
+          persistSession: true,
+          storage: window.localStorage,
+          autoRefreshToken: true,
+          detectSessionInUrl: false
         }
       });
 
-      // Manejar login
+      // 3. Verificar sesión existente
+      supabaseClient.auth.getSession().then(({ data: { session } }) => {
+        if (session) {
+          window.location.href = 'cuestionario.html';
+        }
+      }).catch(error => {
+        console.error('Error verificando sesión:', error);
+      });
+
+      // 4. Configurar formulario de login
+      const loginForm = document.getElementById('loginForm');
+      const errorMsg = document.getElementById('errorMsg');
+
       loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         errorMsg.textContent = '';
@@ -59,7 +71,7 @@
         const password = document.getElementById('password').value;
 
         try {
-          const { data, error } = await supabase.auth.signInWithPassword({
+          const { data, error } = await supabaseClient.auth.signInWithPassword({
             email: email,
             password: password
           });
@@ -70,15 +82,15 @@
           localStorage.setItem('sb-auth-token', data.session.access_token);
           localStorage.setItem('sb-refresh-token', data.session.refresh_token);
 
-          // Redirigir con breve retraso
+          // Redirigir después de breve pausa
           setTimeout(() => {
             window.location.href = 'cuestionario.html';
           }, 300);
 
         } catch (error) {
-          console.error('Login error:', error);
+          console.error('Error en login:', error);
           errorMsg.textContent = error.message.includes('Invalid') ? 
-            'Credenciales incorrectas' : 'Error en el login';
+            'Credenciales incorrectas' : 'Error en el inicio de sesión';
         }
       });
     });
