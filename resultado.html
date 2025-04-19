@@ -224,7 +224,6 @@ async function cargarDatosIniciales() {
     // 3. Extraer semestres únicos
     allSemestres = [...new Set(allEvaluaciones.map(e => e.semestre))]
       .sort((a, b) => b.localeCompare(a)); // Orden descendente
-
     llenarSelectSemestres();
     aplicarFiltros();
 
