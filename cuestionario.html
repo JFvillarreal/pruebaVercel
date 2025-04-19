@@ -30,25 +30,23 @@
 
     // Cargar docentes
     async function cargarDocentes() {
-      const { data, error } = await supabase
-        .from('User')
-        .select('id, firstname, lastname')
-        .ilike('role', 'docente') // Insensible a mayúsculas
-        .order('lastname', { ascending: true });
+const { data: teachers, error } = await supabaseClient
+  .from('User')
+  .select('id, firstname, lastname')
+  .ilike('role', 'docente')
+  .order('lastname', { ascending: true });
 
-      if (error) {
-        console.error(error);
-        alert('Error al cargar docentes');
-        return;
-      }
+if (error) throw error;
 
-      const select = document.querySelector('select[name="docente"]');
-      data.forEach(d => {
-        const option = document.createElement('option');
-        option.value = d.id;
-        option.textContent = `${d.firstName} ${d.lastName}`;
-        select.appendChild(option);
-      });
+const select = document.querySelector('select[name="docente"]');
+select.innerHTML = '<option value="">-- Seleccione --</option>';
+
+teachers.forEach(teacher => {
+  const option = document.createElement('option');
+  option.value = teacher.id;
+  option.textContent = `${teacher.firstname} ${teacher.lastname}`;
+  select.appendChild(option);
+});
     }
 
     // Enviar evaluación
