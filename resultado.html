@@ -193,7 +193,7 @@ async function cargarDatosIniciales() {
     // 1. Cargar todos los docentes (consulta corregida)
     const { data: docentes, error: errorDocentes } = await supabase
       .from('User')
-      .select('id, firstName, lastName')
+      .select('id, firstname, lastname')
       .or('role.eq.docente,role.eq.Docente') // Filtro mejorado para roles
       .order('lastName', { ascending: true });
 
@@ -210,7 +210,7 @@ async function cargarDatosIniciales() {
       .from('answer')
       .select(`
         *,
-        User:docente_id (firstName, lastName),
+        User:docente_id (firstname, lastname),
         Asignatura:asignatura_id (nombre)
       `);
 
@@ -257,7 +257,7 @@ async function cargarDatosIniciales() {
       allDocentes.forEach(docente => {
         const option = document.createElement('option');
         option.value = docente.id;
-        option.textContent = `${docente.lastName}, ${docente.firstName}`;
+        option.textContent = `${docente.lastname}, ${docente.firstname}`;
         select.appendChild(option);
       });
     }
@@ -437,7 +437,7 @@ async function cargarDatosIniciales() {
           promediosDocentes[ev.docente_id] = {
             suma: 0,
             count: 0,
-            nombre: `${ev.User?.lastName}, ${ev.User?.firstName}`
+            nombre: `${ev.User?.lastname}, ${ev.User?.firstname}`
           };
         }
         
@@ -594,7 +594,7 @@ async function cargarDatosIniciales() {
         if (!docentesMap.has(ev.docente_id)) {
           docentesMap.set(ev.docente_id, {
             id: ev.docente_id,
-            nombre: `${ev.User?.lastName}, ${ev.User?.firstName}`,
+            nombre: `${ev.User?.lastname}, ${ev.User?.firstname}`,
             evaluaciones: [],
             asignaturas: new Set()
           });
@@ -678,7 +678,7 @@ async function cargarDatosIniciales() {
         .map(ev => ({
           texto: ev.comentarios,
           semestre: ev.semestre,
-          docente: `${ev.User?.lastName}, ${ev.User?.firstName}`,
+          docente: `${ev.User?.lastname}, ${ev.User?.firstname}`,
           asignatura: ev.Asignatura?.nombre
         }));
       
