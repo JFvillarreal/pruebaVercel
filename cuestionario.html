@@ -199,65 +199,64 @@ async function cargarDocentes() {
   }
 }
     // Enviar evaluación
-    document.getElementById('form-cuestionario').addEventListener('submit', async (e) => {
+document.getElementById('form-cuestionario').addEventListener('submit', async (e) => {
   e.preventDefault();
   
-  // Obtener el semestre actual en formato 'YYYY-S'
-  const now = new Date();
-  const year = now.getFullYear();
-  const semester = now.getMonth() < 6 ? '1' : '2'; // Semestre 1 (enero-junio) o 2 (julio-diciembre)
-  const semestre = `${year}-${semester}`;
-  
-  const docenteId = e.target.querySelector('select[name="docente"]').value;
-  const comentarios = e.target.querySelector('textarea[name="comentarios"]').value;
-  
-  // Verificar que todas las preguntas tengan respuesta
+  // Verificar que el usuario esté autenticado
+  const userId = (await supabase.auth.getUser()).data.user?.id;
+  if (!userId) {
+    alert('Debes iniciar sesión primero');
+    return window.location.href = 'index.html';
+  }
+
+  // Obtener datos del formulario
+  const docenteId = e.target.docente.value;
+  if (!docenteId) {
+    alert('Por favor seleccione un docente');
+    return;
+  }
+
+  // Verificar todas las respuestas
   for (let i = 1; i <= 12; i++) {
     if (!e.target.querySelector(`input[name="q${i}"]:checked`)) {
       alert(`Por favor responda la pregunta ${i}`);
       return;
     }
   }
-  
+
+  // Obtener semestre actual (formato: 'YYYY-S')
+  const now = new Date();
+  const semestre = `${now.getFullYear()}-${now.getMonth() < 6 ? '1' : '2'}`;
+  const comentarios = e.target.comentarios.value;
+
   try {
-    // Insertar cada respuesta individualmente
+    // Preparar todas las inserciones
     const inserts = [];
     for (let i = 1; i <= 12; i++) {
-      const respuesta = e.target.querySelector(`input[name="q${i}"]:checked`).value;
-      
-      inserts.push(
-        supabase.from('Answer').insert([
-          {
-            user_id: userId,
-            docente_id: docenteId,
-            question_id: i,
-            respuesta: parseInt(respuesta),
-            semestre: semestre,
-            comentarios: i === 12 ? comentarios : null // Solo guardar comentarios con la última pregunta
-          }
-        ])
-      );
+      inserts.push({
+        user_id: userId,
+        docente_id: docenteId,
+        question_id: i,
+        respuesta: parseInt(e.target.querySelector(`input[name="q${i}"]:checked`).value),
+        semestre: semestre,
+        comentarios: i === 12 ? comentarios : null // Solo guardar comentarios con la última pregunta
+      });
     }
-    
-    // Ejecutar todas las inserciones
-    const results = await Promise.all(inserts);
-    
-    // Verificar errores
-    const hasError = results.some(result => result.error);
-    if (!docenteId) {
-     alert('Por favor seleccione un docente');
-     return;
-    }
-    if (hasError) {
-      throw new Error('Error al guardar algunas respuestas');
-    }
-    
-    alert('Evaluación enviada con éxito');
+
+    // Insertar todas las respuestas en una sola transacción
+    const { data, error } = await supabase
+      .from('Answer')
+      .insert(inserts);
+
+    if (error) throw error;
+
+    // Éxito
+    alert('Evaluación enviada con éxito!');
     e.target.reset();
-    
+
   } catch (error) {
-    console.error('Error al enviar evaluación:', error);
-    alert('Error al enviar evaluación. Por favor intente nuevamente.');
+    console.error('Error detallado:', error);
+    alert(`Error al enviar: ${error.message}`);
   }
 });
 
