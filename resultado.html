@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Docente</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .card {
+      margin-bottom: 20px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .chart-container {
+      position: relative;
+      height: 300px;
+      margin-bottom: 30px;
+    }
+    .semester-selector {
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-md-12">
+        <h1 class="mt-4">Mi Desempeño Docente</h1>
+        <div class="alert alert-info">
+          Bienvenido/a, <span id="nombre-docente"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="row semester-selector">
+      <div class="col-md-6">
+        <label for="select-semestre" class="form-label">Seleccionar Semestre:</label>
+        <select id="select-semestre" class="form-select">
+          <option value="all">Todos los semestres</option>
+          <!-- Opciones se llenarán dinámicamente -->
+        </select>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header">
+            <h5>Resumen General</h5>
+          </div>
+          <div class="card-body">
+            <div id="resumen-general">
+              <p>Cargando datos...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header">
+            <h5>Evaluaciones por Asignatura</h5>
+          </div>
+          <div class="card-body">
+            <div id="resumen-asignaturas">
+              <p>Cargando datos...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-12">
+        <div class="card">
+          <div class="card-header">
+            <h5>Evolución de Mi Desempeño</h5>
+          </div>
+          <div class="card-body">
+            <div class="chart-container">
+              <canvas id="chart-evolucion"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header">
+            <h5>Distribución de Puntajes</h5>
+          </div>
+          <div class="card-body">
+            <div class="chart-container">
+              <canvas id="chart-distribucion"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header">
+            <h5>Comparativa por Pregunta</h5>
+          </div>
+          <div class="card-body">
+            <div class="chart-container">
+              <canvas id="chart-preguntas"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-12">
+        <div class="card">
+          <div class="card-header">
+            <h5>Comentarios de Estudiantes</h5>
+          </div>
+          <div class="card-body">
+            <div id="comentarios-estudiantes">
+              <p>Cargando comentarios...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+    const supabase = createClient(
+      'https://crwjvwwaksvdnryjmzvl.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyd2p2d3dha3N2ZG5yeWptenZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDY3ODksImV4cCI6MjA2MDMyMjc4OX0.s08kYWtmpc9c2b9VGwcKuiEna48KGoK2vz4y8rafyrE'
+    );
+
+    // Obtener ID del docente desde localStorage (asumiendo que se guardó al iniciar sesión)
+    const docenteId = localStorage.getItem('user_id');
+    if (!docenteId) {
+      alert('Debe iniciar sesión como docente');
+      window.location.href = 'index.html';
+    }
+
+    // Cargar datos del docente y evaluaciones
+    async function cargarDatosDocente() {
+      try {
+        // 1. Obtener información del docente
+        const { data: docente, error: errorDocente } = await supabase
+          .from('User')
+          .select('firstName, lastName')
+          .eq('id', docenteId)
+          .single();
+
+        if (errorDocente) throw errorDocente;
+        
+        document.getElementById('nombre-docente').textContent = `${docente.firstName} ${docente.lastName}`;
+
+        // 2. Obtener todas las evaluaciones del docente
+        const { data: evaluaciones, error: errorEvaluaciones } = await supabase
+          .from('answer')
+          .select('*')
+          .eq('docente_id', docenteId)
+          .order('semestre', { ascending: false });
+
+        if (errorEvaluaciones) throw errorEvaluaciones;
+
+        if (!evaluaciones || evaluaciones.length === 0) {
+          document.getElementById('resumen-general').innerHTML = '<p>No hay evaluaciones registradas aún.</p>';
+          return;
+        }
+
+        // Procesar datos para visualización
+        procesarDatosEvaluaciones(evaluaciones);
+        
+      } catch (error) {
+        console.error('Error cargando datos:', error);
+        alert('Error al cargar los datos. Por favor intente más tarde.');
+      }
+    }
+
+    // Procesar datos y generar visualizaciones
+    function procesarDatosEvaluaciones(evaluaciones) {
+      // 1. Llenar selector de semestres
+      const semestresUnicos = [...new Set(evaluaciones.map(e => e.semestre))];
+      const selectSemestre = document.getElementById('select-semestre');
+      
+      semestresUnicos.forEach(semestre => {
+        const option = document.createElement('option');
+        option.value = semestre;
+        option.textContent = semestre;
+        selectSemestre.appendChild(option);
+      });
+
+      // 2. Calcular promedios
+      const promedioGeneral = calcularPromedioGeneral(evaluaciones);
+      const promediosPorPregunta = calcularPromediosPorPregunta(evaluaciones);
+      const promediosPorSemestre = calcularPromediosPorSemestre(evaluaciones);
+      const promediosPorAsignatura = calcularPromediosPorAsignatura(evaluaciones);
+      const comentarios = obtenerComentarios(evaluaciones);
+
+      // 3. Actualizar resumen general
+      actualizarResumenGeneral(promedioGeneral, evaluaciones.length);
+      
+      // 4. Actualizar resumen por asignatura
+      actualizarResumenAsignaturas(promediosPorAsignatura);
+      
+      // 5. Generar gráficos
+      generarGraficoEvolucion(promediosPorSemestre);
+      generarGraficoDistribucion(evaluaciones);
+      generarGraficoPreguntas(promediosPorPregunta);
+      
+      // 6. Mostrar comentarios
+      mostrarComentarios(comentarios);
+
+      // 7. Configurar filtro por semestre
+      selectSemestre.addEventListener('change', (e) => {
+        const semestreSeleccionado = e.target.value;
+        const evaluacionesFiltradas = semestreSeleccionado === 'all' 
+          ? evaluaciones 
+          : evaluaciones.filter(ev => ev.semestre === semestreSeleccionado);
+        
+        procesarDatosEvaluaciones(evaluacionesFiltradas);
+      });
+    }
+
+    // Funciones de cálculo
+    function calcularPromedioGeneral(evaluaciones) {
+      const sumas = evaluaciones.reduce((acc, ev) => {
+        for (let i = 1; i <= 12; i++) {
+          acc += ev[`q${i}`];
+        }
+        return acc;
+      }, 0);
+      
+      return (sumas / (evaluaciones.length * 12)).toFixed(2);
+    }
+
+    function calcularPromediosPorPregunta(evaluaciones) {
+      const promedios = {};
+      for (let i = 1; i <= 12; i++) {
+        const suma = evaluaciones.reduce((acc, ev) => acc + ev[`q${i}`], 0);
+        promedios[`q${i}`] = (suma / evaluaciones.length).toFixed(2);
+      }
+      return promedios;
+    }
+
+    function calcularPromediosPorSemestre(evaluaciones) {
+      const porSemestre = {};
+      evaluaciones.forEach(ev => {
+        if (!porSemestre[ev.semestre]) {
+          porSemestre[ev.semestre] = [];
+        }
+        let suma = 0;
+        for (let i = 1; i <= 12; i++) {
+          suma += ev[`q${i}`];
+        }
+        porSemestre[ev.semestre].push(suma / 12);
+      });
+
+      // Calcular promedio por semestre
+      const promedios = {};
+      Object.keys(porSemestre).forEach(semestre => {
+        const suma = porSemestre[semestre].reduce((a, b) => a + b, 0);
+        promedios[semestre] = (suma / porSemestre[semestre].length).toFixed(2);
+      });
+
+      return promedios;
+    }
+
+    async function calcularPromediosPorAsignatura(evaluaciones) {
+      // Obtener nombres de asignaturas
+      const asignaturaIds = [...new Set(evaluaciones.map(e => e.asignatura_id))];
+      const { data: asignaturas, error } = await supabase
+        .from('Asignatura')
+        .select('id, nombre')
+        .in('id', asignaturaIds);
+
+      if (error) {
+        console.error('Error cargando asignaturas:', error);
+        return {};
+      }
+
+      // Calcular promedios
+      const promedios = {};
+      asignaturas.forEach(asig => {
+        const evAsignatura = evaluaciones.filter(ev => ev.asignatura_id === asig.id);
+        if (evAsignatura.length > 0) {
+          let suma = 0;
+          evAsignatura.forEach(ev => {
+            for (let i = 1; i <= 12; i++) {
+              suma += ev[`q${i}`];
+            }
+          });
+          promedios[asig.nombre] = (suma / (evAsignatura.length * 12)).toFixed(2);
+        }
+      });
+
+      return promedios;
+    }
+
+    function obtenerComentarios(evaluaciones) {
+      return evaluaciones
+        .filter(ev => ev.comentarios && ev.comentarios.trim() !== '')
+        .map(ev => ({
+          semestre: ev.semestre,
+          comentario: ev.comentarios
+        }));
+    }
+
+    // Funciones de visualización
+    function actualizarResumenGeneral(promedio, totalEvaluaciones) {
+      const html = `
+        <div class="text-center">
+          <h2 class="display-4">${promedio}</h2>
+          <p class="text-muted">Promedio general (1-5)</p>
+          <p>Basado en ${totalEvaluaciones} evaluaciones</p>
+          <div class="progress mt-3" style="height: 20px;">
+            <div class="progress-bar bg-success" role="progressbar" 
+              style="width: ${(promedio / 5) * 100}%" 
+              aria-valuenow="${promedio}" 
+              aria-valuemin="1" 
+              aria-valuemax="5">
+            </div>
+          </div>
+        </div>
+      `;
+      document.getElementById('resumen-general').innerHTML = html;
+    }
+
+    function actualizarResumenAsignaturas(promedios) {
+      let html = '<ul class="list-group">';
+      Object.entries(promedios).forEach(([asignatura, promedio]) => {
+        html += `
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            ${asignatura}
+            <span class="badge bg-primary rounded-pill">${promedio}</span>
+          </li>
+        `;
+      });
+      html += '</ul>';
+      document.getElementById('resumen-asignaturas').innerHTML = html;
+    }
+
+    function generarGraficoEvolucion(promediosPorSemestre) {
+      const ctx = document.getElementById('chart-evolucion').getContext('2d');
+      const semestres = Object.keys(promediosPorSemestre).sort();
+      const promedios = semestres.map(s => promediosPorSemestre[s]);
+
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: semestres,
+          datasets: [{
+            label: 'Promedio por Semestre',
+            data: promedios,
+            borderColor: 'rgb(75, 192, 192)',
+            tension: 0.1,
+            fill: false
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              position: 'top',
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `Promedio: ${context.raw}`;
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: false,
+              min: 1,
+              max: 5
+            }
+          }
+        }
+      });
+    }
+
+    function generarGraficoDistribucion(evaluaciones) {
+      const ctx = document.getElementById('chart-distribucion').getContext('2d');
+      
+      // Calcular distribución de puntajes (1-5)
+      const distribucion = [0, 0, 0, 0, 0];
+      evaluaciones.forEach(ev => {
+        for (let i = 1; i <= 12; i++) {
+          const puntaje = ev[`q${i}`] - 1; // Convertir 1-5 a 0-4 para el array
+          distribucion[puntaje]++;
+        }
+      });
+
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['1', '2', '3', '4', '5'],
+          datasets: [{
+            label: 'Distribución de Puntajes',
+            data: distribucion,
+            backgroundColor: [
+              'rgba(255, 99, 132, 0.7)',
+              'rgba(255, 159, 64, 0.7)',
+              'rgba(255, 205, 86, 0.7)',
+              'rgba(75, 192, 192, 0.7)',
+              'rgba(54, 162, 235, 0.7)'
+            ],
+            borderColor: [
+              'rgb(255, 99, 132)',
+              'rgb(255, 159, 64)',
+              'rgb(255, 205, 86)',
+              'rgb(75, 192, 192)',
+              'rgb(54, 162, 235)'
+            ],
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              display: false
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Cantidad de respuestas'
+              }
+            },
+            x: {
+              title: {
+                display: true,
+                text: 'Puntaje'
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function generarGraficoPreguntas(promediosPorPregunta) {
+      const ctx = document.getElementById('chart-preguntas').getContext('2d');
+      
+      // Descripciones de las preguntas (simplificadas)
+      const preguntas = [
+        'Comunicación',
+        'Uso de inglés',
+        'Coherencia evaluaciones',
+        'Medición competencias',
+        'Realimentación útil',
+        'Recursos aula virtual',
+        'Cumplimiento sílabo',
+        'Incentivo aprendizaje',
+        'Disponibilidad tutorías',
+        'Puntualidad',
+        'Dinámica de clase',
+        'Autoevaluación'
+      ];
+
+      const promedios = Object.values(promediosPorPregunta);
+
+      new Chart(ctx, {
+        type: 'radar',
+        data: {
+          labels: preguntas,
+          datasets: [{
+            label: 'Promedio por pregunta',
+            data: promedios,
+            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+            pointBorderColor: '#fff',
+            pointHoverBackgroundColor: '#fff',
+            pointHoverBorderColor: 'rgba(54, 162, 235, 1)'
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            r: {
+              angleLines: {
+                display: true
+              },
+              suggestedMin: 1,
+              suggestedMax: 5
+            }
+          },
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `${context.dataset.label}: ${context.raw}`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function mostrarComentarios(comentarios) {
+      if (comentarios.length === 0) {
+        document.getElementById('comentarios-estudiantes').innerHTML = '<p>No hay comentarios disponibles.</p>';
+        return;
+      }
+
+      let html = '<div class="accordion" id="accordionComentarios">';
+      comentarios.forEach((com, index) => {
+        html += `
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="heading${index}">
+              <button class="accordion-button collapsed" type="button" 
+                data-bs-toggle="collapse" data-bs-target="#collapse${index}" 
+                aria-expanded="false" aria-controls="collapse${index}">
+                Semestre ${com.semestre}
+              </button>
+            </h2>
+            <div id="collapse${index}" class="accordion-collapse collapse" 
+              aria-labelledby="heading${index}" data-bs-parent="#accordionComentarios">
+              <div class="accordion-body">
+                ${com.comentario}
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      html += '</div>';
+
+      document.getElementById('comentarios-estudiantes').innerHTML = html;
+    }
+
+    // Inicializar
+    document.addEventListener('DOMContentLoaded', cargarDatosDocente);
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
