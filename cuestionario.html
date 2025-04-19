@@ -168,59 +168,92 @@
     }
 
     // Cargar docentes
-    async function cargarDocentes() {
-      const { data: teachers, error } = await supabase
-        .from('User')
-        .select('id, firstname, lastname')
-        .ilike('role', '%docente%')
-        .order('lastname', { ascending: true });
+async function cargarDocentes() {
+  const { data: teachers, error } = await supabase
+    .from('User')
+    .select('id, firstName, lastName')
+    .eq('role', 'docente') // Mejor usar eq en lugar de ilike si es posible
+    .order('lastName', { ascending: true });
 
-      if (error) throw error;
+  if (error) {
+    console.error('Error cargando docentes:', error);
+    alert('Error al cargar la lista de docentes');
+    return;
+  }
 
-      const select = document.querySelector('select[name="docente"]');
-      select.innerHTML = '<option value="">-- Seleccione --</option>';
+  const select = document.querySelector('select[name="docente"]');
+  select.innerHTML = '<option value="">-- Seleccione un docente --</option>';
 
-      teachers.forEach(teacher => {
-        const option = document.createElement('option');
-        option.value = teacher.id;
-        option.textContent = `${teacher.firstname} ${teacher.lastname}`;
-        select.appendChild(option);
-      });
-    }
+  teachers.forEach(teacher => {
+    const option = document.createElement('option');
+    option.value = teacher.id;
+    option.textContent = `${teacher.firstName} ${teacher.lastName}`;
+    select.appendChild(option);
+  });
+}
 
     // Enviar evaluación
     document.getElementById('form-cuestionario').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const docenteId = e.target.querySelector('select[name="docente"]').value;
-      const responses = {
-        q1: e.target.querySelector('input[name="q1"]:checked')?.value,
-        q2: e.target.querySelector('input[name="q2"]:checked')?.value,
-        q12: e.target.querySelector('input[name="q12"]:checked')?.value,
-        comentarios: e.target.querySelector('textarea[name="comentarios"]').value
-      };
-
-      const { error } = await supabase
-        .from('Evaluacion')
-        .insert([
+  e.preventDefault();
+  
+  // Obtener el semestre actual en formato 'YYYY-S'
+  const now = new Date();
+  const year = now.getFullYear();
+  const semester = now.getMonth() < 6 ? '1' : '2'; // Semestre 1 (enero-junio) o 2 (julio-diciembre)
+  const semestre = `${year}-${semester}`;
+  
+  const docenteId = e.target.querySelector('select[name="docente"]').value;
+  const comentarios = e.target.querySelector('textarea[name="comentarios"]').value;
+  
+  // Verificar que todas las preguntas tengan respuesta
+  for (let i = 1; i <= 12; i++) {
+    if (!e.target.querySelector(`input[name="q${i}"]:checked`)) {
+      alert(`Por favor responda la pregunta ${i}`);
+      return;
+    }
+  }
+  
+  try {
+    // Insertar cada respuesta individualmente
+    const inserts = [];
+    for (let i = 1; i <= 12; i++) {
+      const respuesta = e.target.querySelector(`input[name="q${i}"]:checked`).value;
+      
+      inserts.push(
+        supabase.from('Answer').insert([
           {
-            estudiante_id: userId,
+            user_id: userId,
             docente_id: docenteId,
-            q1: responses.q1,
-            q2: responses.q2,
-            q12: responses.q12,
-            comentarios: responses.comentarios
-            // Agrega aquí las demás respuestas
+            question_id: i,
+            respuesta: parseInt(respuesta),
+            semestre: semestre,
+            comentarios: i === 12 ? comentarios : null // Solo guardar comentarios con la última pregunta
           }
-        ]);
-
-      if (error) {
-        alert('Error al enviar evaluación');
-        console.error(error);
-      } else {
-        alert('Evaluación enviada con éxito');
-        e.target.reset();
-      }
-    });
+        ])
+      );
+    }
+    
+    // Ejecutar todas las inserciones
+    const results = await Promise.all(inserts);
+    
+    // Verificar errores
+    const hasError = results.some(result => result.error);
+    if (!docenteId) {
+     alert('Por favor seleccione un docente');
+     return;
+    }
+    if (hasError) {
+      throw new Error('Error al guardar algunas respuestas');
+    }
+    
+    alert('Evaluación enviada con éxito');
+    e.target.reset();
+    
+  } catch (error) {
+    console.error('Error al enviar evaluación:', error);
+    alert('Error al enviar evaluación. Por favor intente nuevamente.');
+  }
+});
 
     cargarDocentes();
   </script>
