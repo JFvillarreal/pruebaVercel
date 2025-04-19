@@ -202,21 +202,21 @@ async function cargarDocentes() {
 document.getElementById('form-cuestionario').addEventListener('submit', async (e) => {
   e.preventDefault();
   
-  // 1. Verificar autenticación primero
+  // 1. Verificar autenticación
   const userId = localStorage.getItem('user_id');
   if (!userId) {
-    alert('Debes iniciar sesión para enviar evaluaciones');
+    alert('Debes iniciar sesión primero');
     return window.location.href = 'index.html';
   }
 
-  // 2. Obtener datos del formulario
+  // 2. Validar selección de docente
   const docenteId = e.target.docente.value;
   if (!docenteId) {
     alert('Por favor seleccione un docente');
     return;
   }
 
-  // 3. Validar todas las respuestas
+  // 3. Validar respuestas
   const respuestas = {};
   for (let i = 1; i <= 12; i++) {
     const respuesta = e.target.querySelector(`input[name="q${i}"]:checked`)?.value;
@@ -227,42 +227,42 @@ document.getElementById('form-cuestionario').addEventListener('submit', async (e
     respuestas[`q${i}`] = parseInt(respuesta);
   }
 
-  // 4. Obtener semestre actual (formato 'YYYY-S')
+  // 4. Obtener semestre y comentarios
   const now = new Date();
   const semestre = `${now.getFullYear()}-${now.getMonth() < 6 ? '1' : '2'}`;
   const comentarios = e.target.comentarios.value;
 
   try {
-    // 5. Preparar datos para enviar
-  const inserts = [];
-  for (let i = 1; i <= 12; i++) {
-    inserts.push({
-      user_id: userId,  // Usamos el ID de localStorage
-      docente_id: docenteId,
-      question_id: i,
-      respuesta: respuestas[`q${i}`],
+    // 5. Preparar datos para insertar
+    const evaluationData = {
+      user_id: parseInt(userId),
+      docente_id: parseInt(docenteId),
       semestre: semestre,
-      comentarios: i === 12 ? comentarios : null
-    });
-  }
+      comentarios: comentarios,
+      ...respuestas  // Spread operator para incluir todas las respuestas (q1, q2, etc.)
+    };
 
-    // 6. Enviar datos a Supabase
-    const { error } = await supabase
+    // 6. Insertar en la nueva estructura
+    const { data, error } = await supabase
       .from('Answer')
-      .insert(inserts);
+      .insert([evaluationData])
+      .select();
 
     if (error) throw error;
-
-    // 7. Éxito
+    
+    console.log('Evaluación registrada:', data);
     alert('¡Evaluación enviada con éxito!');
     e.target.reset();
 
   } catch (error) {
-    console.error('Error detallado:', error);
-    alert(`Error al enviar: ${error.message}`);
+    console.error('Error al enviar evaluación:', {
+      message: error.message,
+      details: error.details,
+      code: error.code
+    });
+    alert('Error al enviar la evaluación. Por favor intente nuevamente.');
   }
 });
-
     cargarDocentes();
   </script>
 </body>
