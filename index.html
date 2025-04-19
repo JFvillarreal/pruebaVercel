@@ -13,9 +13,9 @@
         <h1 class="title">Universidad El Bosque</h1>
         <h2 class="subtitle">Evaluación Docente</h2>
         <div class="login-container">
-          <form action="/login" method="POST">
-            <input type="email" name="email" placeholder="Correo electrónico" required />
-            <input type="password" name="password" placeholder="Contraseña" required />
+          <form id="login-form" method="POST">
+            <input type="email" id="email" name="email" placeholder="Correo electrónico" required />
+            <input type="password" id="password" name="password" placeholder="Contraseña" required />
             <button type="submit">Ingresar</button>
           </form>
           <div class="error" id="error"></div>
@@ -28,28 +28,38 @@
   </div>
 
   <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
     const supabase = createClient(
       'https://crwjvwwaksvdnryjmzvl.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyd2p2d3dha3N2ZG5yeWptenZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDY3ODksImV4cCI6MjA2MDMyMjc4OX0.s08kYWtmpc9c2b9VGwcKuiEna48KGoK2vz4y8rafyrE'
-    )
+    );
 
     document.getElementById('login-form').addEventListener('submit', async (e) => {
-      e.preventDefault()
-      const email = e.target.email.value
-      const password = e.target.password.value
+      e.preventDefault();
 
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-      const errorMsg = document.getElementById('error-message')
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
 
-      if (error) {
-        errorMsg.textContent = 'Correo o contraseña incorrectos.'
-      } else {
-        localStorage.setItem('user_id', data.user.id)
-        window.location.href = 'cuestionario.html'
+      const { data: users, error } = await supabase
+        .from('User')
+        .select('*')
+        .eq('email', email)
+        .eq('password', password)
+        .maybeSingle(); // Asumimos que no hay más de un usuario con mismo email
+
+      if (error || !users) {
+        alert('Credenciales incorrectas');
+        return;
       }
-    })
+
+      // Guardamos usuario en localStorage
+      localStorage.setItem('user_id', users.id);
+      localStorage.setItem('user_name', users.firstName + ' ' + users.lastName);
+      window.location.href = 'cuestionario.html';
+    });
   </script>
 </body>
 </html>
+
+
