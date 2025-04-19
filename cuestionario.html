@@ -29,25 +29,26 @@
     }
 
     // Cargar docentes
-    async function cargarDocentes() {
-const { data: teachers, error } = await supabaseClient
-  .from('User')
-  .select('id, firstname, lastname')
-  .ilike('role', 'docente')
-  .order('lastname', { ascending: true });
+async function cargarDocentes() {
+  const { data: teachers, error } = await supabase
+    .from('User')
+    .select('id, firstname, lastname')
+    .ilike('role', '%docente%')
+    .order('lastname', { ascending: true });
 
-if (error) throw error;
+  if (error) throw error;
 
-const select = document.querySelector('select[name="docente"]');
-select.innerHTML = '<option value="">-- Seleccione --</option>';
+  const select = document.querySelector('select[name="docente"]');
+  select.innerHTML = '<option value="">-- Seleccione --</option>';
 
-teachers.forEach(teacher => {
-  const option = document.createElement('option');
-  option.value = teacher.id;
-  option.textContent = `${teacher.firstname} ${teacher.lastname}`;
-  select.appendChild(option);
-});
-    }
+  teachers.forEach(teacher => {
+    const option = document.createElement('option');
+    option.value = teacher.id;
+    option.textContent = `${teacher.firstname} ${teacher.lastname}`;
+    select.appendChild(option);
+  });
+}
+
 
     // Enviar evaluación
     document.getElementById('form-cuestionario').addEventListener('submit', async (e) => {
