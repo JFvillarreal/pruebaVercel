@@ -52,33 +52,31 @@
   </form>
 
   <script>
-    document.addEventListener('DOMContentLoaded', async () => {
-      const supabaseUrl = 'https://crwjvwwaksvdnryjmzvl.supabase.co';
-      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyd2p2d3dha3N2ZG5yeWptenZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDY3ODksImV4cCI6MjA2MDMyMjc4OX0.s08kYWtmpc9c2b9VGwcKuiEna48KGoK2vz4y8rafyrE';
+ document.addEventListener('DOMContentLoaded', async () => {
+  const user = await verifySession();
+  if (!user) return;
 
-      const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey, {
-        auth: {
-          persistSession: true,
-          storage: window.localStorage,
-          autoRefreshToken: true,
-          detectSessionInUrl: false
-        }
-      });
+  await loadTeachers();
+  document.getElementById('form-cuestionario').addEventListener('submit', handleSubmit);
+});
 
 async function verifySession() {
   try {
-    const { data: { session }, error } = await supabaseClient.auth.getSession();
-    if (error || !session || !session.user) throw error || new Error('Sesión inválida');
-    return session;
+    const { data, error } = await supabaseClient.auth.getSession();
+
+    if (error || !data.session || !data.session.user) {
+      throw new Error('Sesión inválida');
+    }
+
+    return data.session.user;
   } catch (error) {
-    console.error('Sesión inválida:', error);
+    console.error('Sesión inválida:', error.message);
     await supabaseClient.auth.signOut();
-    localStorage.clear();
+    window.localStorage.clear();
     window.location.href = 'index.html';
     return null;
   }
 }
-
 
       async function loadTeachers() {
         try {

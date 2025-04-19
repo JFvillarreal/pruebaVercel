@@ -66,19 +66,19 @@
       submitBtn.textContent = 'Verificando...';
 
       try {
-        const { data, error } = await supabaseClient
-          .from('User')
-          .select('*')
-          .eq('email', email)
-          .eq('password', password)
-          .single();
+const { data, error } = await supabaseClient.auth.signInWithPassword({
+  email,
+  password
+});
 
-        if (error || !data) {
-          errorMsg.textContent = 'Correo o contraseña incorrectos';
-          emailInput.classList.add('input-error');
-          passwordInput.classList.add('input-error');
-          return;
-        }
+if (error) {
+  alert('Credenciales inválidas');
+} else {
+  // 🔁 Esperar unos milisegundos antes de redirigir
+  setTimeout(() => {
+    window.location.href = 'cuestionario.html';
+  }, 300);
+}
 
         // Login exitoso
         localStorage.setItem('userId', data.id); // Cambia 'id' si tu columna tiene otro nombre
