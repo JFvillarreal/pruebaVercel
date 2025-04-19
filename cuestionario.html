@@ -291,7 +291,7 @@ async function cargarAsignaturas() {
 
         // Insertar evaluación
         const { error } = await supabase
-          .from('Answer')
+          .from('answer')
           .insert([evaluationData]);
 
         if (error) throw error;
