@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
   <title>Login - Evaluación Docente</title>
   <link rel="stylesheet" href="css/login.css">
+  <!-- Cargar Supabase primero -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
   <div class="container">
@@ -25,55 +26,80 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-  document.addEventListener('DOMContentLoaded', async () => {
-    // Configuración CORREGIDA de Supabase
-    const supabaseUrl = 'https://crwjvwwaksvdnryjmzvl.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyd2p2d3dha3N2ZG5yeWptenZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDY3ODksImV4cCI6MjA2MDMyMjc4OX0.s08kYWtmpc9c2b9VGwcKuiEna48KGoK2vz4y8rafyrE';
-    
-    const supabase = supabase.createClient(supabaseUrl, supabaseKey, {
-      auth: {
-        persistSession: true,
-        storage: window.localStorage, // Usar localStorage explícitamente
-        autoRefreshToken: true
-      }
-    });
 
-    // Verificar sesión existente
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      window.location.href = 'cuestionario.html';
-      return;
+  <script>
+    // Esperar a que la biblioteca de Supabase esté disponible
+    function initSupabase() {
+      return new Promise((resolve) => {
+        const checkSupabase = () => {
+          if (window.supabase) {
+            const supabase = window.supabase.createClient(
+              'https://crwjvwwaksvdnryjmzvl.supabase.co',
+              'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyd2p2d3dha3N2ZG5yeWptenZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDY3ODksImV4cCI6MjA2MDMyMjc4OX0.s08kYWtmpc9c2b9VGwcKuiEna48KGoK2vz4y8rafyrE',
+              {
+                auth: {
+                  persistSession: true,
+                  storage: window.localStorage,
+                  autoRefreshToken: true
+                }
+              }
+            );
+            resolve(supabase);
+          } else {
+            setTimeout(checkSupabase, 100);
+          }
+        };
+        checkSupabase();
+      });
     }
 
-    // Manejar login
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
-      
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: password
-      });
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        // 1. Inicializar Supabase (espera explícitamente)
+        const supabase = await initSupabase();
+        console.log("Supabase inicializado correctamente");
 
-      if (error) {
-        document.getElementById('errorMsg').textContent = error.message;
-        return;
+        // 2. Verificar sesión existente
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          window.location.href = 'cuestionario.html';
+          return;
+        }
+
+        // 3. Configurar el formulario de login
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          
+          const email = document.getElementById('email').value;
+          const password = document.getElementById('password').value;
+          const errorMsg = document.getElementById('errorMsg');
+          errorMsg.textContent = '';
+
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email: email,
+            password: password
+          });
+
+          if (error) {
+            errorMsg.textContent = error.message;
+            return;
+          }
+
+          // Guardar manualmente el token para asegurar persistencia
+          localStorage.setItem('sb-auth-token', JSON.stringify({
+            currentSession: data.session,
+            expiresAt: data.session.expires_at
+          }));
+
+          // Redirigir después de autenticar
+          window.location.href = 'cuestionario.html';
+        });
+
+      } catch (error) {
+        console.error('Error inicial:', error);
+        alert('Error al cargar la aplicación. Recarga la página.');
       }
-
-      // Guardar manualmente el token para asegurar persistencia
-      localStorage.setItem('sb-auth-token', JSON.stringify({
-        currentSession: data.session,
-        expiresAt: data.session.expires_at
-      }));
-
-      // Redirigir después de autenticar
-      window.location.href = 'cuestionario.html';
     });
-  });
-</script>
+  </script>
 </body>
 </html>
