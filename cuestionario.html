@@ -169,29 +169,35 @@
 
     // Cargar docentes
 async function cargarDocentes() {
-  const { data: teachers, error } = await supabase
-    .from('User')
-    .select('id, firstName, lastName')
-    .eq('role', 'docente') // Mejor usar eq en lugar de ilike si es posible
-    .order('lastName', { ascending: true });
+  try {
+    const { data: teachers, error } = await supabase
+      .from('User')
+      .select('id, firstName:firstname, lastName:lastname') // Usando alias para compatibilidad
+      .ilike('role', '%docente%') // Manteniendo ilike por si hay variaciones
+      .order('lastname', { ascending: true });
 
-  if (error) {
+    if (error) throw error;
+
+    const select = document.querySelector('select[name="docente"]');
+    select.innerHTML = '<option value="">-- Seleccione un docente --</option>';
+
+    if (teachers && teachers.length > 0) {
+      teachers.forEach(teacher => {
+        const option = document.createElement('option');
+        option.value = teacher.id;
+        // Usamos los nombres de propiedades que coincidan con tu BD
+        option.textContent = `${teacher.firstname || teacher.firstName} ${teacher.lastname || teacher.lastName}`;
+        select.appendChild(option);
+      });
+    } else {
+      console.warn('No se encontraron docentes');
+      select.innerHTML = '<option value="">No hay docentes disponibles</option>';
+    }
+  } catch (error) {
     console.error('Error cargando docentes:', error);
-    alert('Error al cargar la lista de docentes');
-    return;
+    alert('Error al cargar la lista de docentes. Por favor recarga la página.');
   }
-
-  const select = document.querySelector('select[name="docente"]');
-  select.innerHTML = '<option value="">-- Seleccione un docente --</option>';
-
-  teachers.forEach(teacher => {
-    const option = document.createElement('option');
-    option.value = teacher.id;
-    option.textContent = `${teacher.firstName} ${teacher.lastName}`;
-    select.appendChild(option);
-  });
 }
-
     // Enviar evaluación
     document.getElementById('form-cuestionario').addEventListener('submit', async (e) => {
   e.preventDefault();
