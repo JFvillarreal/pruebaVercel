@@ -65,22 +65,20 @@
         }
       });
 
-      async function verifySession() {
-        try {
-      //    const accessToken = localStorage.getItem('sb-auth-token');
-       //  if (!accessToken) throw new Error('No hay token');
+async function verifySession() {
+  try {
+    const { data: { session }, error } = await supabaseClient.auth.getSession();
+    if (error || !session || !session.user) throw error || new Error('Sesión inválida');
+    return session;
+  } catch (error) {
+    console.error('Sesión inválida:', error);
+    await supabaseClient.auth.signOut();
+    localStorage.clear();
+    window.location.href = 'index.html';
+    return null;
+  }
+}
 
-          const { data: { session }, error } = await supabaseClient.auth.getSession();
-          if (error || !session) throw error || new Error('Sesión inválida');
-          return session;
-        } catch (error) {
-          console.error('Sesión inválida:', error);
-          await supabaseClient.auth.signOut();
-          localStorage.clear();
-          window.location.href = 'index.html';
-          return null;
-        }
-      }
 
       async function loadTeachers() {
         try {
