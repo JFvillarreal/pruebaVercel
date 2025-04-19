@@ -16,218 +16,233 @@
     <img src="/img/logoUEB.png" alt="Logo Universidad El Bosque" class="logo">
   </div>
 
-  <form id="form-cuestionario" class="container">
-    <h3>Cuestionario de Evaluación Docente</h3>
-    
-    <!-- Selección de docente -->
-    <div class="question">
-      <p>1. Seleccione el docente evaluado:</p>
-      <select id="docente" name="docente" required>
-        <option value="">-- Cargando docentes --</option>
-      </select>
+<form id="form-cuestionario" class="container">
+  <h3>Cuestionario de Evaluación Docente</h3>
+  <div class="question">
+    <p>13. Seleccione el docente evaluado:</p>
+    <select name="docente" required>
+      <option value="">-- Seleccione --</option>
+      <option value="profesor1">Profesor 1</option>
+      <option value="profesor2">Profesor 2</option>
+      <option value="profesor3">Profesor 3</option>
+      <!-- Puedes agregar más opciones aquí -->
+    </select>
+  </div>
+  <div class="question">
+    <p>1. En esta asignatura la comunicación entre el profesor y los estudiantes ha sido satisfactoria.</p>
+    <div class="scale-options">
+      <label><input type="radio" name="q1" value="1">1</label>
+      <label><input type="radio" name="q1" value="2">2</label>
+      <label><input type="radio" name="q1" value="3">3</label>
+      <label><input type="radio" name="q1" value="4">4</label>
+      <label><input type="radio" name="q1" value="5">5</label>
     </div>
-    
-    <!-- Preguntas del cuestionario (ejemplo con 3 preguntas) -->
-    <div class="question">
-      <p>2. La comunicación con el docente fue efectiva:</p>
-      <div class="scale-options">
-        <label><input type="radio" name="q1" value="1" required>1</label>
-        <label><input type="radio" name="q1" value="2">2</label>
-        <label><input type="radio" name="q1" value="3">3</label>
-        <label><input type="radio" name="q1" value="4">4</label>
-        <label><input type="radio" name="q1" value="5">5</label>
-      </div>
-    </div>
-    
-    <div class="question">
-      <p>3. El dominio del tema por parte del docente fue:</p>
-      <div class="scale-options">
-        <label><input type="radio" name="q2" value="1" required>1</label>
-        <label><input type="radio" name="q2" value="2">2</label>
-        <label><input type="radio" name="q2" value="3">3</label>
-        <label><input type="radio" name="q2" value="4">4</label>
-        <label><input type="radio" name="q2" value="5">5</label>
-      </div>
-    </div>
-    
-    <div class="question">
-      <p>4. La puntualidad del docente fue:</p>
-      <div class="scale-options">
-        <label><input type="radio" name="q3" value="1" required>1</label>
-        <label><input type="radio" name="q3" value="2">2</label>
-        <label><input type="radio" name="q3" value="3">3</label>
-        <label><input type="radio" name="q3" value="4">4</label>
-        <label><input type="radio" name="q3" value="5">5</label>
-      </div>
-    </div>
-    
-    <div class="question">
-      <p>Comentarios adicionales:</p>
-      <textarea name="comentarios" rows="4" placeholder="Escriba sus observaciones aquí..."></textarea>
-    </div>
-    
-    <div class="navigation-buttons">
-      <button type="submit" id="submit-btn">Enviar</button>
-    </div>
-  </form>
+  </div>
 
-<script>
-  // Configuración IDÉNTICA a index.html
-  const supabaseUrl = 'https://crwjvwwaksvdnryjmzvl.supabase.co';
-  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyd2p2d3dha3N2ZG5yeWptenZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDY3ODksImV4cCI6MjA2MDMyMjc4OX0.s08kYWtmpc9c2b9VGwcKuiEna48KGoK2vz4y8rafyrE';
-  
-  const supabase = supabase.createClient(supabaseUrl, supabaseKey, {
-    auth: {
-      persistSession: true,
-      storage: window.localStorage,
-      autoRefreshToken: true
-    }
-  });
+  <div class="question">
+    <p>2. En esta asignatura se han propuesto actividades que requieren el uso del idioma inglés.</p>
+    <div class="scale-options">
+      <label><input type="radio" name="q2" value="1">1</label>
+      <label><input type="radio" name="q2" value="2">2</label>
+      <label><input type="radio" name="q2" value="3">3</label>
+      <label><input type="radio" name="q2" value="4">4</label>
+      <label><input type="radio" name="q2" value="5">5</label>
+    </div>
+  </div>
 
-  document.addEventListener('DOMContentLoaded', async () => {
-    try {
-      // Verificación de sesión MEJORADA
-      const storedSession = JSON.parse(localStorage.getItem('sb-auth-token'));
-      
-      if (storedSession) {
-        // Restaurar sesión manualmente si es necesario
-        const { data: { session }, error } = await supabase.auth.setSession(
-          storedSession.currentSession.access_token,
-          storedSession.currentSession.refresh_token
-        );
-        
+  <div class="question">
+    <p>3. En esta asignatura las evaluaciones han sido coherentes con lo estudiado en ella.</p>
+    <div class="scale-options">
+      <label><input type="radio" name="q3" value="1">1</label>
+      <label><input type="radio" name="q3" value="2">2</label>
+      <label><input type="radio" name="q3" value="3">3</label>
+      <label><input type="radio" name="q3" value="4">4</label>
+      <label><input type="radio" name="q3" value="5">5</label>
+    </div>
+  </div>
+
+  <div class="question">
+    <p>4. Las evaluaciones realizadas en esta asignatura están encaminadas a medir el logro de las competencias planteadas.</p>
+    <div class="scale-options">
+      <label><input type="radio" name="q4" value="1">1</label>
+      <label><input type="radio" name="q4" value="2">2</label>
+      <label><input type="radio" name="q4" value="3">3</label>
+      <label><input type="radio" name="q4" value="4">4</label>
+      <label><input type="radio" name="q4" value="5">5</label>
+    </div>
+  </div>
+
+  <div class="question">
+    <p>5. En esta asignatura la realimentación de sus trabajos ha sido útil para mejorar su proceso de aprendizaje.</p>
+    <div class="scale-options">
+      <label><input type="radio" name="q5" value="1">1</label>
+      <label><input type="radio" name="q5" value="2">2</label>
+      <label><input type="radio" name="q5" value="3">3</label>
+      <label><input type="radio" name="q5" value="4">4</label>
+      <label><input type="radio" name="q5" value="5">5</label>
+    </div>
+  </div>
+
+  <div class="question">
+    <p>6. En el aula virtual están todos los recursos necesarios para el desarrollo de las actividades de la asignatura.</p>
+    <div class="scale-options">
+      <label><input type="radio" name="q6" value="1">1</label>
+      <label><input type="radio" name="q6" value="2">2</label>
+      <label><input type="radio" name="q6" value="3">3</label>
+      <label><input type="radio" name="q6" value="4">4</label>
+      <label><input type="radio" name="q6" value="5">5</label>
+    </div>
+  </div>
+
+  <div class="question">
+    <p>7. El desarrollo de la asignatura ha sido acorde con el sílabo dado a conocer al inicio de la asignatura.</p>
+    <div class="scale-options">
+      <label><input type="radio" name="q7" value="1">1</label>
+      <label><input type="radio" name="q7" value="2">2</label>
+      <label><input type="radio" name="q7" value="3">3</label>
+      <label><input type="radio" name="q7" value="4">4</label>
+      <label><input type="radio" name="q7" value="5">5</label>
+    </div>
+  </div>
+
+  <div class="question">
+    <p>8. Las actividades desarrolladas en la asignatura lo incentivan a seguir aprendiendo sobre la materia y materias relacionadas.</p>
+    <div class="scale-options">
+      <label><input type="radio" name="q8" value="1">1</label>
+      <label><input type="radio" name="q8" value="2">2</label>
+      <label><input type="radio" name="q8" value="3">3</label>
+      <label><input type="radio" name="q8" value="4">4</label>
+      <label><input type="radio" name="q8" value="5">5</label>
+    </div>
+  </div>
+
+  <div class="question">
+    <p>9. El docente de esta asignatura ha estado dispuesto y ha realizado tutorías o asesorías cuando se han requerido.</p>
+    <div class="scale-options">
+      <label><input type="radio" name="q9" value="1">1</label>
+      <label><input type="radio" name="q9" value="2">2</label>
+      <label><input type="radio" name="q9" value="3">3</label>
+      <label><input type="radio" name="q9" value="4">4</label>
+      <label><input type="radio" name="q9" value="5">5</label>
+    </div>
+  </div>
+
+  <div class="question">
+    <p>10. El docente de esta asignatura ha sido puntual con las sesiones de clase planteadas en el cronograma.</p>
+    <div class="scale-options">
+      <label><input type="radio" name="q10" value="1">1</label>
+      <label><input type="radio" name="q10" value="2">2</label>
+      <label><input type="radio" name="q10" value="3">3</label>
+      <label><input type="radio" name="q10" value="4">4</label>
+      <label><input type="radio" name="q10" value="5">5</label>
+    </div>
+  </div>
+
+  <div class="question">
+    <p>11. Evalúe su percepción sobre la calidad docente del profesor con respecto a la dinámica de clase.</p>
+    <div class="scale-options">
+      <label><input type="radio" name="q11" value="1">1</label>
+      <label><input type="radio" name="q11" value="2">2</label>
+      <label><input type="radio" name="q11" value="3">3</label>
+      <label><input type="radio" name="q11" value="4">4</label>
+      <label><input type="radio" name="q11" value="5">5</label>
+    </div>
+  </div>
+
+  <div class="question">
+    <p>12. Evalúe su desempeño en la asignatura.</p>
+    <div class="scale-options">
+      <label><input type="radio" name="q12" value="1">1</label>
+      <label><input type="radio" name="q12" value="2">2</label>
+      <label><input type="radio" name="q12" value="3">3</label>
+      <label><input type="radio" name="q12" value="4">4</label>
+      <label><input type="radio" name="q12" value="5">5</label>
+    </div>
+  </div>
+
+  <div class="navigation-buttons">
+    <button type="submit">Enviar</button>
+  </div>
+  <div class="question">
+    <p>14. Comentarios adicionales (opcional):</p>
+    <textarea name="comentarios" rows="4" placeholder="Escriba sus observaciones aquí..."></textarea>
+  </div>
+</form>
+
+  <script>
+    // 1. Inicialización temprana de Supabase
+    const supabaseUrl = 'https://crwjvwwaksvdnryjmzvl.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyd2p2d3dha3N2ZG5yeWptenZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDY3ODksImV4cCI6MjA2MDMyMjc4OX0.s08kYWtmpc9c2b9VGwcKuiEna48KGoK2vz4y8rafyrE';
+    
+    const supabase = supabase.createClient(supabaseUrl, supabaseKey, {
+      auth: {
+        persistSession: true,
+        storage: window.localStorage,
+        autoRefreshToken: true
+      }
+    });
+
+    // 2. Función para cargar docentes
+    async function loadTeachers() {
+      try {
+        const { data: teachers, error } = await supabase
+          .from('User')
+          .select('id, firstName, lastName')
+          .eq('role', 'docente')
+          .order('lastName', { ascending: true });
+
         if (error) throw error;
-        if (!session) throw new Error('No se pudo restaurar la sesión');
+
+        const select = document.querySelector('select[name="docente"]');
+        select.innerHTML = '<option value="">-- Seleccione --</option>';
+
+        teachers.forEach(teacher => {
+          const option = document.createElement('option');
+          option.value = teacher.id;
+          option.textContent = `${teacher.firstName} ${teacher.lastName}`;
+          select.appendChild(option);
+        });
+
+      } catch (error) {
+        console.error('Error cargando docentes:', error);
+        alert('Error al cargar la lista de docentes');
       }
-
-      // Verificación estándar
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
-      if (authError || !user) {
-        console.error('Error de autenticación:', authError);
-        window.location.href = 'index.html';
-        return;
-      }
-
-      console.log('Usuario autenticado:', user.email);
-      
-      // Resto de tu lógica (cargar docentes, etc.)
-      await loadTeachers();
-      
-      // Configurar evento de envío
-      document.getElementById('form-cuestionario').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        await handleFormSubmit();
-      });
-
-    } catch (error) {
-      console.error('Error inicial:', error);
-      window.location.href = 'index.html';
     }
-  });
-    // =============================================
-    // PASO 4: Configuración del formulario
-    // =============================================
-    async function setupForm() {
-      const form = document.getElementById('form-cuestionario');
+
+    // 3. Verificación de autenticación
+    async function checkAuth() {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error || !user) {
+        window.location.href = 'index.html';
+        return false;
+      }
+      return true;
+    }
+
+    // 4. Manejo del envío del formulario
+    async function handleFormSubmit(e) {
+      e.preventDefault();
+      const submitBtn = e.target.querySelector('button[type="submit"]');
       
-      form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const submitBtn = e.target.querySelector('button[type="submit"]');
+      try {
         submitBtn.disabled = true;
         submitBtn.textContent = 'Enviando...';
         
-        try {
-          // Verificar autenticación antes de enviar
-          const isAuthenticated = await checkAuth();
-          if (!isAuthenticated) return;
+        if (!await checkAuth()) return;
 
-          const docenteId = form.docente.value;
-          if (!docenteId) throw new Error('Debe seleccionar un docente');
-
-          // Obtener semestre automático (2025-1 o 2025-2)
-          const now = new Date();
-          const semester = `${now.getFullYear()}-${now.getMonth() < 6 ? '1' : '2'}`;
-          
-          // Obtener ID de usuario
-          const { data: { user } } = await supabase.auth.getUser();
-          
-          // Recoger respuestas
-          const answers = [];
-          for (let i = 1; i <= 12; i++) { // Ajusta según número de preguntas
-            const respuesta = form.querySelector(`input[name="q${i}"]:checked`)?.value;
-            if (!respuesta) throw new Error(`Debe responder la pregunta ${i}`);
-            
-            answers.push({
-              user_id: user.id,
-              docente_id: docenteId,
-              question_id: i,
-              respuesta: parseInt(respuesta),
-              semestre: semester,
-              comentarios: i === 12 ? form.comentarios.value : null
-            });
-          }
-
-          // Insertar respuestas
-          const { error } = await supabase
-            .from('Answer')
-            .insert(answers);
-
-          if (error) throw error;
-
-          alert('¡Evaluación enviada con éxito!');
-          window.location.href = 'gracias.html';
-
-        } catch (error) {
-          console.error('Error enviando evaluación:', error);
-          alert(error.message || 'Error al enviar la evaluación. Intente nuevamente.');
-        } finally {
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Enviar';
-        }
-      });
+        // Resto del código de envío...
+        
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Enviar';
+      }
     }
 
-    // =============================================
-    // PASO 5: Inicialización principal
-    // =============================================
+    // 5. Inicialización cuando el DOM esté listo
     document.addEventListener('DOMContentLoaded', async () => {
-      // 1. Inicializar Supabase
-      if (!initSupabase()) {
-// Diagnóstico profundo
-console.log("Estado de autenticación completo:");
-const { data: { session } } = await supabase.auth.getSession();
-const { data: { user } } = await supabase.auth.getUser();
-const authState = await supabase.auth.getSession();
-
-console.log({
-  session,
-  user,
-  authState,
-  localStorage: window.localStorage.getItem(`sb-${supabaseUrl.replace(/https?:\/\//, '')}-auth-token`)
-});
-
-if (!session || !user) {
-  console.log("Redirección necesaria porque:", {
-    hasSession: !!session,
-    hasUser: !!user,
-    sessionData: session,
-    userData: user
-  });
-  window.location.href = "index.html";
-  return;
-}
-      }
-
-      // 2. Verificar autenticación
-      const isAuthenticated = await checkAuth();
-      if (!isAuthenticated) return;
-
-      // 3. Cargar datos
+      if (!await checkAuth()) return;
       await loadTeachers();
-      await setupForm();
-      
-      console.log("Aplicación cargada correctamente");
+      document.getElementById('form-cuestionario').addEventListener('submit', handleFormSubmit);
     });
   </script>
 </body>
