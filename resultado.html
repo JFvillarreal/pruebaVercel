@@ -195,7 +195,7 @@ async function cargarDatosIniciales() {
       .from('User')
       .select('id, firstname, lastname')
       .or('role.eq.docente,role.eq.Docente') // Filtro mejorado para roles
-      .order('lastName', { ascending: true });
+      .order('lastname', { ascending: true });
 
     if (errorDocentes) {
       console.error('Error cargando docentes:', errorDocentes);
@@ -297,7 +297,7 @@ async function cargarDatosIniciales() {
       // Actualizar resumen de filtros
       const docenteText = currentFilters.docente === 'all' 
         ? 'Todos los docentes' 
-        : allDocentes.find(d => d.id == currentFilters.docente)?.lastName || 'Docente';
+        : allDocentes.find(d => d.id == currentFilters.docente)?.lastname || 'Docente';
       
       const semestreText = currentFilters.semestre === 'all' 
         ? 'Todos los semestres' 
