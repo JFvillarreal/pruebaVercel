@@ -203,9 +203,8 @@ document.getElementById('form-cuestionario').addEventListener('submit', async (e
   e.preventDefault();
   
   // 1. Verificar autenticación primero
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  
-  if (authError || !user) {
+  const userId = localStorage.getItem('user_id');
+  if (!userId) {
     alert('Debes iniciar sesión para enviar evaluaciones');
     return window.location.href = 'index.html';
   }
@@ -235,17 +234,17 @@ document.getElementById('form-cuestionario').addEventListener('submit', async (e
 
   try {
     // 5. Preparar datos para enviar
-    const inserts = [];
-    for (let i = 1; i <= 12; i++) {
-      inserts.push({
-        user_id: user.id,  // Usamos el ID del usuario autenticado
-        docente_id: docenteId,
-        question_id: i,
-        respuesta: respuestas[`q${i}`],
-        semestre: semestre,
-        comentarios: i === 12 ? comentarios : null
-      });
-    }
+  const inserts = [];
+  for (let i = 1; i <= 12; i++) {
+    inserts.push({
+      user_id: userId,  // Usamos el ID de localStorage
+      docente_id: docenteId,
+      question_id: i,
+      respuesta: respuestas[`q${i}`],
+      semestre: semestre,
+      comentarios: i === 12 ? comentarios : null
+    });
+  }
 
     // 6. Enviar datos a Supabase
     const { error } = await supabase
@@ -263,14 +262,6 @@ document.getElementById('form-cuestionario').addEventListener('submit', async (e
     alert(`Error al enviar: ${error.message}`);
   }
 });
-// Prueba esta función en la consola para verificar la conexión
-async function testAuth() {
-  const { data: { user }, error } = await supabase.auth.getUser();
-  console.log('Usuario actual:', user);
-  console.log('Error:', error);
-  return user;
-}
-testAuth();
 
     cargarDocentes();
   </script>
