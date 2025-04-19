@@ -8,10 +8,20 @@
 <body>
   <h1>Evaluación Docente</h1>
   <form id="form-cuestionario">
-    <select name="docente" required>
-      <option value="">-- Seleccione un docente --</option>
-    </select><br><br>
-
+    <div>
+      <label>Docente:</label>
+      <select name="docente" required>
+        <option value="">-- Seleccione un docente --</option>
+      </select>
+    </div>
+    
+    <div>
+      <label>Asignatura:</label>
+      <select name="asignatura" required>
+        <option value="">-- Seleccione una asignatura --</option>
+      </select>
+    </div>
+    <br>
     <!-- Preguntas del cuestionario -->
  <div class="question">
     <p>1. En esta asignatura la comunicación entre el profesor y los estudiantes ha sido satisfactoria.</p>
@@ -168,121 +178,124 @@
     }
 
     // Cargar docentes
-async function cargarDocentes() {
-  try {
-    const { data: teachers, error } = await supabase
-      .from('User')
-      .select('id, firstName:firstname, lastName:lastname') // Usando alias para compatibilidad
-      .ilike('role', '%docente%') // Manteniendo ilike por si hay variaciones
-      .order('lastname', { ascending: true });
+    async function cargarDocentes() {
+      try {
+        const { data: teachers, error } = await supabase
+          .from('User')
+          .select('id, firstName:firstname, lastName:lastname')
+          .ilike('role', '%docente%')
+          .order('lastname', { ascending: true });
 
-    if (error) throw error;
+        if (error) throw error;
 
-    const select = document.querySelector('select[name="docente"]');
-    select.innerHTML = '<option value="">-- Seleccione un docente --</option>';
+        const select = document.querySelector('select[name="docente"]');
+        select.innerHTML = '<option value="">-- Seleccione un docente --</option>';
 
-    if (teachers && teachers.length > 0) {
-      teachers.forEach(teacher => {
-        const option = document.createElement('option');
-        option.value = teacher.id;
-        // Usamos los nombres de propiedades que coincidan con tu BD
-        option.textContent = `${teacher.firstname || teacher.firstName} ${teacher.lastname || teacher.lastName}`;
-        select.appendChild(option);
-      });
-    } else {
-      console.warn('No se encontraron docentes');
-      select.innerHTML = '<option value="">No hay docentes disponibles</option>';
-    }
-  } catch (error) {
-    console.error('Error cargando docentes:', error);
-    alert('Error al cargar la lista de docentes. Por favor recarga la página.');
-  }
-}
-    // Enviar evaluación
-document.getElementById('form-cuestionario').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  
-  // Mostrar ID de usuario en consola para depuración
-  const userId = localStorage.getItem('user_id');
-  console.log('ID de usuario obtenido:', userId);
-  
-  if (!userId) {
-    alert('Debes iniciar sesión primero');
-    return window.location.href = 'index.html';
-  }
-
-  const docenteId = e.target.docente.value;
-  console.log('ID de docente seleccionado:', docenteId);
-  
-  if (!docenteId) {
-    alert('Por favor seleccione un docente');
-    return;
-  }
-
-  // Validar respuestas
-  const respuestas = {};
-  for (let i = 1; i <= 12; i++) {
-    const respuesta = e.target.querySelector(`input[name="q${i}"]:checked`)?.value;
-    if (!respuesta) {
-      alert(`Por favor responda la pregunta ${i}`);
-      return;
-    }
-    respuestas[`q${i}`] = parseInt(respuesta);
-  }
-  console.log('Respuestas:', respuestas);
-
-  // Obtener semestre y comentarios
-  const now = new Date();
-  const semestre = `${now.getFullYear()}-${now.getMonth() < 6 ? '1' : '2'}`;
-  const comentarios = e.target.comentarios.value;
-
-  try {
-    // Preparar datos para insertar
-    const evaluationData = {
-      user_id: parseInt(userId),
-      docente_id: parseInt(docenteId),
-      semestre: semestre,
-      comentarios: comentarios,
-      ...respuestas
-    };
-
-    console.log('Datos a insertar:', evaluationData);
-
-    // INTENTO 1: Insertar sin .select() primero
-    let { error: insertError } = await supabase
-      .from('answer')  // <-- Verifica si necesitas usar 'answer' en minúsculas
-      .insert([evaluationData]);
-
-    if (insertError) {
-      console.error('Error en inserción directa:', insertError);
-      
-      // INTENTO 2: Insertar con .select() para diagnóstico
-      const { data, error: selectError } = await supabase
-        .from('answer')
-        .insert([evaluationData])
-        .select('*');
-      
-      if (selectError) throw selectError;
-      
-      console.log('Datos insertados con select:', data);
+        if (teachers && teachers.length > 0) {
+          teachers.forEach(teacher => {
+            const option = document.createElement('option');
+            option.value = teacher.id;
+            option.textContent = `${teacher.firstname || teacher.firstName} ${teacher.lastname || teacher.lastName}`;
+            select.appendChild(option);
+          });
+        }
+      } catch (error) {
+        console.error('Error cargando docentes:', error);
+        alert('Error al cargar docentes');
+      }
     }
 
-    alert('¡Evaluación enviada con éxito!');
-    e.target.reset();
+    // Cargar asignaturas
+    async function cargarAsignaturas() {
+      try {
+        const { data: asignaturas, error } = await supabase
+          .from('Asignatura')
+          .select('id, nombre')
+          .eq('active', true)
+          .order('nombre', { ascending: true });
 
-  } catch (error) {
-    console.error('Error completo:', {
-      message: error.message,
-      details: error.details,
-      code: error.code,
-      hint: error.hint,
-      stack: error.stack
+        if (error) throw error;
+
+        const select = document.querySelector('select[name="asignatura"]');
+        select.innerHTML = '<option value="">-- Seleccione una asignatura --</option>';
+
+        if (asignaturas && asignaturas.length > 0) {
+          asignaturas.forEach(asignatura => {
+            const option = document.createElement('option');
+            option.value = asignatura.id;
+            option.textContent = asignatura.nombre;
+            select.appendChild(option);
+          });
+        }
+      } catch (error) {
+        console.error('Error cargando asignaturas:', error);
+        alert('Error al cargar asignaturas');
+      }
+    }
+
+    // Enviar evaluación (modificado para incluir asignatura)
+    document.getElementById('form-cuestionario').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      if (!userId) {
+        alert('Debes iniciar sesión primero');
+        return window.location.href = 'index.html';
+      }
+
+      const docenteId = e.target.docente.value;
+      const asignaturaId = e.target.asignatura.value;
+      
+      if (!docenteId || !asignaturaId) {
+        alert('Por favor seleccione un docente y una asignatura');
+        return;
+      }
+
+      // Validar respuestas
+      const respuestas = {};
+      for (let i = 1; i <= 12; i++) {
+        const respuesta = e.target.querySelector(`input[name="q${i}"]:checked`)?.value;
+        if (!respuesta) {
+          alert(`Por favor responda la pregunta ${i}`);
+          return;
+        }
+        respuestas[`q${i}`] = parseInt(respuesta);
+      }
+
+      // Obtener semestre y comentarios
+      const now = new Date();
+      const semestre = `${now.getFullYear()}-${now.getMonth() < 6 ? '1' : '2'}`;
+      const comentarios = e.target.comentarios.value;
+
+      try {
+        // Preparar datos para insertar
+        const evaluationData = {
+          user_id: parseInt(userId),
+          docente_id: parseInt(docenteId),
+          asignatura_id: parseInt(asignaturaId),
+          semestre: semestre,
+          comentarios: comentarios,
+          ...respuestas
+        };
+
+        // Insertar evaluación
+        const { error } = await supabase
+          .from('Answer')
+          .insert([evaluationData]);
+
+        if (error) throw error;
+
+        alert('¡Evaluación enviada con éxito!');
+        e.target.reset();
+
+      } catch (error) {
+        console.error('Error al enviar:', error);
+        alert(`Error al enviar: ${error.message || 'Ver consola para detalles'}`);
+      }
     });
-    
-    alert(`Error al enviar: ${error.message || 'Ver consola para detalles'}`);
-  }
-});
+
+    // Cargar datos al iniciar
     cargarDocentes();
+    cargarAsignaturas();
   </script>
 </body>
 </html>
