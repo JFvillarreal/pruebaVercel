@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>Login - Evaluación Docente</title>
   <link rel="stylesheet" href="css/login.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
   <div class="container">
@@ -21,60 +21,64 @@
       </div>
     </div>
     <div class="right">
-      <img src="/img/logoUEB.png" />
+      <img src="/img/logoUEB.png" alt="Logo Universidad" />
     </div>
   </div>
 
-  <script defer>
-    document.addEventListener('DOMContentLoaded', async () => {
-      // Inicializar Supabase solo para acceder a la base de datos
-      const supabaseClient = supabase.createClient(
-        'https://crwjvwwaksvdnryjmzvl.supabase.co',
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyd2p2d3dha3N2ZG5yeWptenZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDY3ODksImV4cCI6MjA2MDMyMjc4OX0.s08kYWtmpc9c2b9VGwcKuiEna48KGoK2vz4y8rafyrE'
-      );
+  <script>
+    // Inicialización de Supabase
+    const supabaseUrl = 'https://crwjvwwaksvdnryjmzvl.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyd2p2d3dha3N2ZG5yeWptenZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDY3ODksImV4cCI6MjA2MDMyMjc4OX0.s08kYWtmpc9c2b9VGwcKuiEna48KGoK2vz4y8rafyrE';
+    
+    const supabase = supabase.createClient(supabaseUrl, supabaseKey, {
+      auth: {
+        persistSession: true,
+        storage: window.localStorage,
+        autoRefreshToken: true,
+        detectSessionInUrl: false
+      }
+    });
 
-      // Configurar formulario de login
-      document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    document.addEventListener('DOMContentLoaded', () => {
+      const loginForm = document.getElementById('loginForm');
+      const errorMsg = document.getElementById('errorMsg');
+
+      // Verificar sesión existente
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) {
+          window.location.href = 'cuestionario.html';
+        }
+      });
+
+      // Manejar login
+      loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        errorMsg.textContent = '';
         
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
-        const errorMsg = document.getElementById('errorMsg');
-        
-        errorMsg.textContent = '';
-        
+
         try {
-          // 1. Verificar usuario en tu tabla User
-          const { data: user, error: userError } = await supabaseClient
-            .from('User')
-            .select('*')
-            .eq('email', email)
-            .eq('password', password) // ¡OJO! Esto no es seguro, deberías usar hashes
-            .single();
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email: email,
+            password: password
+          });
 
-          if (userError || !user) {
-            throw new Error('Credenciales incorrectas');
-          }
+          if (error) throw error;
 
-          // 2. Verificar si el usuario está activo
-          if (!user.active) {
-            throw new Error('Tu cuenta está desactivada');
-          }
+          // Guardar tokens manualmente como respaldo
+          localStorage.setItem('sb-auth-token', data.session.access_token);
+          localStorage.setItem('sb-refresh-token', data.session.refresh_token);
 
-          // 3. Guardar datos de sesión simple (sin Supabase Auth)
-          sessionStorage.setItem('user', JSON.stringify({
-            id: user.id,
-            email: user.email,
-            role: user.role,
-            name: `${user.firstName} ${user.lastName}`
-          }));
+          // Redirigir con breve retraso
+          setTimeout(() => {
+            window.location.href = 'cuestionario.html';
+          }, 300);
 
-          // 4. Redirigir al cuestionario
-          window.location.href = 'cuestionario.html';
-          
         } catch (error) {
-          console.error('Error en login:', error);
-          errorMsg.textContent = error.message || 'Error en la autenticación';
+          console.error('Login error:', error);
+          errorMsg.textContent = error.message.includes('Invalid') ? 
+            'Credenciales incorrectas' : 'Error en el login';
         }
       });
     });
