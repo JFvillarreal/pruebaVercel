@@ -209,7 +209,7 @@
     async function cargarAsignaturas() {
       try {
         const { data: asignaturas, error } = await supabase
-          .from('Asignatura')
+          .from('asignatura')
           .select('id, nombre')
           .eq('active', true)
           .order('nombre', { ascending: true });
