@@ -188,39 +188,66 @@
     };
 
     // Cargar todos los datos iniciales
-    async function cargarDatosIniciales() {
-      try {
-        // 1. Cargar todos los docentes
-        const { data: docentes, error: errorDocentes } = await supabase
-          .from('User')
-          .select('id, firstName, lastName')
-          .ilike('role', '%docente%')
-          .order('lastName', { ascending: true });
+async function cargarDatosIniciales() {
+  try {
+    // 1. Cargar todos los docentes (consulta corregida)
+    const { data: docentes, error: errorDocentes } = await supabase
+      .from('User')
+      .select('id, firstName, lastName')
+      .or('role.eq.docente,role.eq.Docente') // Filtro mejorado para roles
+      .order('lastName', { ascending: true });
 
-        if (errorDocentes) throw errorDocentes;
-        allDocentes = docentes || [];
-        llenarSelectDocentes();
-
-        // 2. Cargar todas las evaluaciones
-        const { data: evaluaciones, error: errorEvaluaciones } = await supabase
-          .from('answer')
-          .select('*, User!docente_id(firstName, lastName), Asignatura!asignatura_id(nombre)');
-
-        if (errorEvaluaciones) throw errorEvaluaciones;
-        allEvaluaciones = evaluaciones || [];
-
-        // 3. Extraer semestres únicos
-        allSemestres = [...new Set(allEvaluaciones.map(e => e.semestre))].sort().reverse();
-        llenarSelectSemestres();
-
-        // 4. Procesar datos iniciales
-        aplicarFiltros();
-
-      } catch (error) {
-        console.error('Error cargando datos:', error);
-        alert('Error al cargar los datos. Por favor intente más tarde.');
-      }
+    if (errorDocentes) {
+      console.error('Error cargando docentes:', errorDocentes);
+      throw errorDocentes;
     }
+    
+    allDocentes = docentes || [];
+    llenarSelectDocentes();
+
+    // 2. Cargar todas las evaluaciones (consulta optimizada)
+    const { data: evaluaciones, error: errorEvaluaciones } = await supabase
+      .from('answer')
+      .select(`
+        *,
+        User:docente_id (firstName, lastName),
+        Asignatura:asignatura_id (nombre)
+      `);
+
+    if (errorEvaluaciones) {
+      console.error('Error cargando evaluaciones:', errorEvaluaciones);
+      throw errorEvaluaciones;
+    }
+    
+    allEvaluaciones = evaluaciones || [];
+
+    // 3. Extraer semestres únicos
+    allSemestres = [...new Set(allEvaluaciones.map(e => e.semestre))]
+      .sort((a, b) => b.localeCompare(a)); // Orden descendente
+
+    llenarSelectSemestres();
+    aplicarFiltros();
+
+  } catch (error) {
+    console.error('Error completo:', {
+      message: error.message,
+      details: error.details,
+      code: error.code,
+      hint: error.hint
+    });
+    
+    // Mostrar error amigable
+    const errorContainer = document.createElement('div');
+    errorContainer.className = 'alert alert-danger';
+    errorContainer.innerHTML = `
+      <h4>Error al cargar los datos</h4>
+      <p>${error.message || 'Por favor verifica la conexión e intenta nuevamente.'}</p>
+      <small>Código: ${error.code || 'N/A'}</small>
+    `;
+    
+    document.querySelector('.container-fluid').prepend(errorContainer);
+  }
+}
 
     // Llenar select de docentes
     function llenarSelectDocentes() {
