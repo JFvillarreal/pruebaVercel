@@ -34,7 +34,7 @@
         .from('User')
         .select('id, firstname, lastname')
         .ilike('role', 'docente') // Insensible a mayúsculas
-        .order('lastName', { ascending: true });
+        .order('lastname', { ascending: true });
 
       if (error) {
         console.error(error);
